@@ -40,6 +40,7 @@ html, body {
     border: none;
     background: #1f2937;
     color: white;
+    outline: none;
 }
 
 /* CHAT */
@@ -67,7 +68,6 @@ html, body {
     display: flex;
     flex-direction: column;
     scroll-behavior: smooth;
-    -webkit-overflow-scrolling: touch;
 }
 
 /* MESSAGE */
@@ -105,8 +105,6 @@ html, body {
     padding: 8px;
     background: #111827;
     flex-shrink: 0;
-    position: sticky;
-    bottom: 0;
 }
 
 #input {
@@ -143,9 +141,12 @@ button {
 <div id="login">
     <div id="login-box">
         <h2>👻 Ghost 💀 Chat</h2>
+
         <input id="usernameInput" placeholder="Enter Ghost Name">
         <br><br>
-        <button onclick="startChat()">Enter</button>
+
+        <button onclick="login()">Login</button>
+        <button onclick="register()">Register</button>
     </div>
 </div>
 
@@ -158,6 +159,7 @@ button {
     <div id="form">
         <input id="input" placeholder="Message...">
         <input type="file" id="file">
+
         <button onclick="sendVoice()">🎤</button>
         <button onclick="sendMessage()">➤</button>
     </div>
@@ -170,34 +172,60 @@ let username = "";
 
 const messagesDiv = document.getElementById("messages");
 
-// LOGIN (FIX ENTER KEY)
+// ---------------- AUTH ----------------
+
+async function register() {
+    const username = document.getElementById("usernameInput").value;
+    const password = prompt("Create password");
+
+    const res = await fetch("/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json();
+    alert(data.error || "Registered!");
+}
+
+async function login() {
+    const usernameInput = document.getElementById("usernameInput").value;
+    const password = prompt("Enter password");
+
+    const res = await fetch("/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: usernameInput, password })
+    });
+
+    const data = await res.json();
+
+    if (data.user) {
+        username = data.user.username;
+
+        socket.emit("set user", data.user);
+        startChat();
+    } else {
+        alert(data.error);
+    }
+}
+
+// ---------------- CHAT START ----------------
 function startChat() {
-    username = document.getElementById("usernameInput").value;
-    if (!username) return;
-
-    socket.emit("set username", username);
-
     document.getElementById("login").style.display = "none";
     document.getElementById("chat").style.display = "flex";
 }
 
 // ENTER KEY SUPPORT
 document.getElementById("usernameInput").addEventListener("keydown", e => {
-    if (e.key === "Enter") startChat();
+    if (e.key === "Enter") login();
 });
 
 document.getElementById("input").addEventListener("keydown", e => {
     if (e.key === "Enter") sendMessage();
 });
 
-// SCROLL FIX
-function scrollToBottom() {
-    setTimeout(() => {
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    }, 50);
-}
-
-// BASE64
+// ---------------- SEND ----------------
 function toBase64(file) {
     return new Promise(resolve => {
         const reader = new FileReader();
@@ -206,7 +234,6 @@ function toBase64(file) {
     });
 }
 
-// SEND MESSAGE
 async function sendMessage() {
     const text = document.getElementById("input").value;
     const file = document.getElementById("file").files[0];
@@ -224,7 +251,7 @@ async function sendMessage() {
     document.getElementById("file").value = "";
 }
 
-// VOICE
+// ---------------- VOICE ----------------
 async function sendVoice() {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const recorder = new MediaRecorder(stream);
@@ -251,7 +278,7 @@ async function sendVoice() {
     setTimeout(() => recorder.stop(), 4000);
 }
 
-// RECEIVE
+// ---------------- RECEIVE ----------------
 socket.on("chat message", (msg) => {
 
     const div = document.createElement("div");
@@ -274,7 +301,7 @@ socket.on("chat message", (msg) => {
     div.innerHTML = html;
     messagesDiv.appendChild(div);
 
-    scrollToBottom();
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
 });
 </script>
 
