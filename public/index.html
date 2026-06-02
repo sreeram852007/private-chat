@@ -11,12 +11,25 @@ body {
     color: white;
 }
 
-/* HEADER */
-#header {
-    background: #111827;
-    padding: 15px;
-    color: #00ffcc;
-    font-size: 18px;
+/* LOGIN */
+#login {
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: radial-gradient(circle, #0b0f14, black);
+}
+
+#login-box {
+    text-align: center;
+}
+
+#usernameInput {
+    padding: 10px;
+    border-radius: 10px;
+    border: none;
+    background: #1f2937;
+    color: white;
 }
 
 /* CHAT */
@@ -26,76 +39,88 @@ body {
     flex-direction: column;
 }
 
+#header {
+    background: #111827;
+    padding: 15px;
+    color: #00ffcc;
+    font-size: 18px;
+}
+
 #messages {
     flex: 1;
     overflow-y: auto;
     padding: 10px;
 }
 
-/* MSG */
+/* MESSAGE */
 .msg {
     max-width: 70%;
     padding: 10px;
     margin: 6px;
-    border-radius: 10px;
+    border-radius: 12px;
     clear: both;
+    word-wrap: break-word;
 }
 
-.me { float: right; background: #00ffcc; color: black; }
-.other { float: left; background: #1f2937; }
+.me {
+    float: right;
+    background: linear-gradient(135deg, #00ffcc, #00b3ff);
+    color: black;
+}
+
+.other {
+    float: left;
+    background: #1f2937;
+}
 
 .user {
     font-size: 11px;
     opacity: 0.7;
     display: block;
+    margin-bottom: 4px;
 }
 
-/* INPUT */
+/* INPUT AREA */
 #form {
     display: flex;
     padding: 10px;
     background: #111827;
+    gap: 5px;
 }
 
 #input {
     flex: 1;
     padding: 10px;
-    border: none;
     border-radius: 20px;
+    border: none;
     background: #1f2937;
     color: white;
+    outline: none;
 }
 
-/* BUTTONS */
 button {
-    margin-left: 5px;
     padding: 10px;
     border: none;
     border-radius: 10px;
     background: #00ffcc;
-}
-
-/* LOGIN */
-#login {
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: black;
+    cursor: pointer;
 }
 </style>
 </head>
 
 <body>
 
+<!-- LOGIN -->
 <div id="login">
-    <div>
+    <div id="login-box">
         <h2>👻 Ghost 💀 Chat</h2>
         <input id="usernameInput" placeholder="Enter Ghost Name">
+        <br><br>
         <button onclick="startChat()">Enter</button>
     </div>
 </div>
 
+<!-- CHAT -->
 <div id="chat">
     <div id="header">👻 Ghost 💀 Chat</div>
 
@@ -103,11 +128,10 @@ button {
 
     <div id="form">
         <input id="input" placeholder="Message...">
-
         <input type="file" id="file">
 
         <button onclick="sendVoice()">🎤</button>
-        <button onclick="send()">➤</button>
+        <button onclick="sendMessage()">➤</button>
     </div>
 </div>
 
@@ -116,82 +140,79 @@ button {
 const socket = io();
 let username = "";
 
-// LOGIN
+// ---------------- LOGIN ----------------
 function startChat() {
     username = document.getElementById("usernameInput").value;
+    if (!username) return;
+
     socket.emit("set username", username);
 
     document.getElementById("login").style.display = "none";
     document.getElementById("chat").style.display = "flex";
 }
 
-// SEND TEXT / FILE
-async function send() {
+// ---------------- BASE64 HELPER ----------------
+function toBase64(file) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result.split(",")[1]);
+        reader.readAsDataURL(file);
+    });
+}
+
+// ---------------- SEND MESSAGE ----------------
+async function sendMessage() {
     const text = document.getElementById("input").value;
     const file = document.getElementById("file").files[0];
 
-    let fileUrl = "";
+    let fileBase64 = "";
 
     if (file) {
-        const formData = new FormData();
-        formData.append("file", file);
-
-        const res = await fetch("/upload", {
-            method: "POST",
-            body: formData
-        });
-
-        const data = await res.json();
-        fileUrl = data.fileUrl;
+        fileBase64 = await toBase64(file);
     }
 
     socket.emit("chat message", {
         text,
-        file: fileUrl,
-        type: file ? "file" : "text"
+        type: file ? "file" : "text",
+        file: fileBase64
     });
 
     document.getElementById("input").value = "";
+    document.getElementById("file").value = "";
 }
 
-// VOICE MESSAGE
-let recorder;
-let chunks = [];
-
+// ---------------- VOICE MESSAGE ----------------
 async function sendVoice() {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    recorder = new MediaRecorder(stream);
+    const recorder = new MediaRecorder(stream);
 
-    recorder.start();
+    let chunks = [];
 
-    recorder.ondataavailable = e => {
-        chunks.push(e.data);
-    };
+    recorder.ondataavailable = e => chunks.push(e.data);
 
     recorder.onstop = async () => {
         const blob = new Blob(chunks, { type: "audio/webm" });
-        chunks = [];
 
-        const formData = new FormData();
-        formData.append("file", blob, "voice.webm");
+        const reader = new FileReader();
 
-        const res = await fetch("/upload", {
-            method: "POST",
-            body: formData
-        });
+        reader.onloadend = () => {
+            const base64 = reader.result.split(",")[1];
 
-        const data = await res.json();
+            socket.emit("chat message", {
+                type: "voice",
+                voice: base64
+            });
+        };
 
-        socket.emit("chat message", {
-            voice: data.fileUrl,
-            type: "voice"
-        });
+        reader.readAsDataURL(blob);
     };
+
+    recorder.start();
 
     setTimeout(() => recorder.stop(), 4000);
 }
 
-// RECEIVE
+// ---------------- RECEIVE ----------------
 socket.on("chat message", (msg) => {
     const div = document.createElement("div");
 
@@ -199,26 +220,28 @@ socket.on("chat message", (msg) => {
 
     div.className = "msg " + (isMe ? "me" : "other");
 
-    let content = `<span class="user">${msg.user}</span>`;
+    let html = `<span class="user">${msg.user}</span>`;
 
-    if (msg.type === "text") content += msg.text;
+    if (msg.type === "text") {
+        html += msg.text;
+    }
 
     if (msg.type === "file") {
-        content += `<br><a href="${msg.file}" target="_blank">📎 File</a>`;
+        html += `<a href="data:application/octet-stream;base64,${msg.file}" download>📎 Download File</a>`;
     }
 
     if (msg.type === "voice") {
-        content += `<audio controls src="${msg.voice}"></audio>`;
+        html += `<audio controls src="data:audio/webm;base64,${msg.voice}"></audio>`;
     }
 
-    div.innerHTML = content;
+    div.innerHTML = html;
 
     document.getElementById("messages").appendChild(div);
 });
 
-// HISTORY
-socket.on("chat history", msgs => {
-    msgs.forEach(m => socket.emit("chat message", m));
+// ---------------- HISTORY ----------------
+socket.on("chat history", (msgs) => {
+    msgs.forEach(msg => socket.emit("chat message", msg));
 });
 </script>
 

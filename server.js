@@ -4,8 +4,8 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const mongoose = require("mongoose");
-const multer = require("multer");
-const path = require("path");
+const cloudinary = require("cloudinary").v2;
+const streamifier = require("streamifier");
 
 const Message = require("./models/Message");
 
@@ -13,32 +13,37 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// ================= MongoDB =================
+// ================= CLOUDINARY =================
+cloudinary.config({
+    cloud_name: process.env.CLOUD_NAME,
+    api_key: process.env.CLOUD_API_KEY,
+    api_secret: process.env.CLOUD_API_SECRET
+});
+
+// ================= MONGO =================
 mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log("MongoDB connected"))
     .catch(err => console.log(err));
 
-// ================= Static =================
 app.use(express.static("public"));
-app.use("/uploads", express.static("uploads"));
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));
 
-// ================= File Upload =================
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, "uploads"),
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname));
-    }
-});
+// ================= CLOUD UPLOAD FUNCTION =================
+function uploadToCloud(buffer, resourceType = "auto") {
+    return new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+            { resource_type: resourceType },
+            (error, result) => {
+                if (error) return reject(error);
+                resolve(result);
+            }
+        );
 
-const upload = multer({ storage });
+        streamifier.createReadStream(buffer).pipe(uploadStream);
+    });
+}
 
-// upload file route
-app.post("/upload", upload.single("file"), (req, res) => {
-    res.json({ fileUrl: "/uploads/" + req.file.filename });
-});
-
-// ================= Socket =================
+// ================= SOCKET =================
 io.on("connection", async (socket) => {
 
     socket.on("set username", (name) => {
@@ -49,21 +54,50 @@ io.on("connection", async (socket) => {
     socket.emit("chat history", msgs);
 
     socket.on("chat message", async (data) => {
+        try {
+            let fileUrl = "";
+            let voiceUrl = "";
 
-        const msg = {
-            user: socket.username || "Ghost",
-            text: data.text || "",
-            file: data.file || "",
-            voice: data.voice || "",
-            type: data.type
-        };
+            // TEXT ONLY
+            if (data.type === "text") {
+                // nothing
+            }
 
-        await Message.create(msg);
+            // FILE
+            if (data.type === "file") {
+                const result = await uploadToCloud(
+                    Buffer.from(data.file, "base64"),
+                    "auto"
+                );
+                fileUrl = result.secure_url;
+            }
 
-        io.emit("chat message", msg);
+            // VOICE
+            if (data.type === "voice") {
+                const result = await uploadToCloud(
+                    Buffer.from(data.voice, "base64"),
+                    "video"
+                );
+                voiceUrl = result.secure_url;
+            }
+
+            const msg = {
+                user: socket.username || "Ghost",
+                text: data.text || "",
+                file: fileUrl,
+                voice: voiceUrl,
+                type: data.type
+            };
+
+            await Message.create(msg);
+            io.emit("chat message", msg);
+
+        } catch (err) {
+            console.error("UPLOAD ERROR:", err);
+        }
     });
 });
 
 server.listen(3000, () => {
-    console.log("👻 Ghost Chat running on http://localhost:3000");
+    console.log("👻 Ghost Chat PRO running");
 });
