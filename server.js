@@ -4,8 +4,6 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const mongoose = require("mongoose");
-const cloudinary = require("cloudinary").v2;
-const streamifier = require("streamifier");
 
 const Message = require("./models/Message");
 
@@ -13,35 +11,19 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// ================= CLOUDINARY =================
-cloudinary.config({
-    cloud_name: process.env.CLOUD_NAME,
-    api_key: process.env.CLOUD_API_KEY,
-    api_secret: process.env.CLOUD_API_SECRET
-});
-
 // ================= MONGO =================
-mongoose.connect(process.env.MONGO_URI)
+const mongoURI = process.env.MONGO_URI;
+
+if (!mongoURI) {
+    console.error("MONGO_URI missing!");
+    process.exit(1);
+}
+
+mongoose.connect(mongoURI)
     .then(() => console.log("MongoDB connected"))
     .catch(err => console.log(err));
 
 app.use(express.static("public"));
-app.use(express.json({ limit: "50mb" }));
-
-// ================= CLOUD UPLOAD FUNCTION =================
-function uploadToCloud(buffer, resourceType = "auto") {
-    return new Promise((resolve, reject) => {
-        const uploadStream = cloudinary.uploader.upload_stream(
-            { resource_type: resourceType },
-            (error, result) => {
-                if (error) return reject(error);
-                resolve(result);
-            }
-        );
-
-        streamifier.createReadStream(buffer).pipe(uploadStream);
-    });
-}
 
 // ================= SOCKET =================
 io.on("connection", async (socket) => {
@@ -50,54 +32,47 @@ io.on("connection", async (socket) => {
         socket.username = name;
     });
 
+    // send history
     const msgs = await Message.find().sort({ createdAt: 1 });
     socket.emit("chat history", msgs);
 
     socket.on("chat message", async (data) => {
         try {
-            let fileUrl = "";
-            let voiceUrl = "";
-
-            // TEXT ONLY
-            if (data.type === "text") {
-                // nothing
-            }
-
-            // FILE
-            if (data.type === "file") {
-                const result = await uploadToCloud(
-                    Buffer.from(data.file, "base64"),
-                    "auto"
-                );
-                fileUrl = result.secure_url;
-            }
-
-            // VOICE
-            if (data.type === "voice") {
-                const result = await uploadToCloud(
-                    Buffer.from(data.voice, "base64"),
-                    "video"
-                );
-                voiceUrl = result.secure_url;
-            }
 
             const msg = {
                 user: socket.username || "Ghost",
                 text: data.text || "",
-                file: fileUrl,
-                voice: voiceUrl,
+                file: data.file || "",
+                voice: data.voice || "",
                 type: data.type
             };
 
             await Message.create(msg);
+
+            // ================= AUTO DELETE OLD MESSAGES =================
+            const count = await Message.countDocuments();
+
+            if (count > 1000) {
+                const extra = count - 1000;
+
+                const oldMsgs = await Message.find()
+                    .sort({ createdAt: 1 })
+                    .limit(extra);
+
+                const ids = oldMsgs.map(m => m._id);
+
+                await Message.deleteMany({ _id: { $in: ids } });
+            }
+
             io.emit("chat message", msg);
 
         } catch (err) {
-            console.error("UPLOAD ERROR:", err);
+            console.error("Message error:", err);
         }
     });
 });
 
+// ================= START =================
 server.listen(3000, () => {
-    console.log("👻 Ghost Chat PRO running");
+    console.log("👻 Ghost Chat running");
 });

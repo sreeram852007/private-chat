@@ -105,6 +105,21 @@ button {
     background: #00ffcc;
     cursor: pointer;
 }
+
+/* FLOAT BUTTON */
+#scrollBtn {
+    position: fixed;
+    bottom: 90px;
+    right: 15px;
+    padding: 12px;
+    border-radius: 50%;
+    border: none;
+    background: #00ffcc;
+    color: black;
+    display: none;
+    cursor: pointer;
+    font-weight: bold;
+}
 </style>
 </head>
 
@@ -133,12 +148,17 @@ button {
         <button onclick="sendVoice()">🎤</button>
         <button onclick="sendMessage()">➤</button>
     </div>
+
+    <button id="scrollBtn" onclick="scrollToBottom()">⬇</button>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
 const socket = io();
 let username = "";
+
+const messagesDiv = document.getElementById("messages");
+const scrollBtn = document.getElementById("scrollBtn");
 
 // ---------------- LOGIN ----------------
 function startChat() {
@@ -151,7 +171,19 @@ function startChat() {
     document.getElementById("chat").style.display = "flex";
 }
 
-// ---------------- BASE64 HELPER ----------------
+// ---------------- SCROLL ----------------
+function scrollToBottom() {
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+messagesDiv.addEventListener("scroll", () => {
+    const nearBottom =
+        messagesDiv.scrollHeight - messagesDiv.scrollTop - messagesDiv.clientHeight < 120;
+
+    scrollBtn.style.display = nearBottom ? "none" : "block";
+});
+
+// ---------------- BASE64 ----------------
 function toBase64(file) {
     return new Promise((resolve) => {
         const reader = new FileReader();
@@ -181,7 +213,7 @@ async function sendMessage() {
     document.getElementById("file").value = "";
 }
 
-// ---------------- VOICE MESSAGE ----------------
+// ---------------- VOICE ----------------
 async function sendVoice() {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const recorder = new MediaRecorder(stream);
@@ -208,12 +240,12 @@ async function sendVoice() {
     };
 
     recorder.start();
-
     setTimeout(() => recorder.stop(), 4000);
 }
 
-// ---------------- RECEIVE ----------------
+// ---------------- RECEIVE MESSAGE ----------------
 socket.on("chat message", (msg) => {
+
     const div = document.createElement("div");
 
     const isMe = msg.user === username;
@@ -236,12 +268,39 @@ socket.on("chat message", (msg) => {
 
     div.innerHTML = html;
 
-    document.getElementById("messages").appendChild(div);
+    messagesDiv.appendChild(div);
+
+    scrollToBottom();
 });
 
 // ---------------- HISTORY ----------------
 socket.on("chat history", (msgs) => {
-    msgs.forEach(msg => socket.emit("chat message", msg));
+
+    msgs.forEach(msg => {
+
+        const div = document.createElement("div");
+
+        const isMe = msg.user === username;
+
+        div.className = "msg " + (isMe ? "me" : "other");
+
+        let html = `<span class="user">${msg.user}</span>`;
+
+        if (msg.type === "text") html += msg.text;
+
+        if (msg.type === "file") {
+            html += `<a href="data:application/octet-stream;base64,${msg.file}" download>📎 Download File</a>`;
+        }
+
+        if (msg.type === "voice") {
+            html += `<audio controls src="data:audio/webm;base64,${msg.voice}"></audio>`;
+        }
+
+        div.innerHTML = html;
+        messagesDiv.appendChild(div);
+    });
+
+    scrollToBottom();
 });
 </script>
 
