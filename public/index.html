@@ -1,28 +1,30 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Ghost 💀 Chat</title>
+<title>Ghost 💀 Chat Pro</title>
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
 <style>
+/* ================= GLOBAL FIX ================= */
 html, body {
     margin: 0;
     padding: 0;
     width: 100%;
-    height: 100%;
+    height: 100dvh;
     overflow: hidden;
     font-family: Arial;
     background: #0b0f14;
     color: white;
+
     position: fixed;
     top: 0;
     left: 0;
 }
 
-/* LOGIN */
+/* ================= LOGIN ================= */
 #login {
-    height: 100vh;
+    height: 100dvh;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -45,7 +47,7 @@ html, body {
     outline: none;
 }
 
-/* CHAT */
+/* ================= CHAT ================= */
 #chat {
     display: none;
     height: 100dvh;
@@ -67,12 +69,13 @@ html, body {
 #messages {
     flex: 1;
     overflow-y: auto;
-    padding: 10px;
     display: flex;
     flex-direction: column;
-    scroll-behavior: smooth;
+    padding: 10px;
 
-    padding-bottom: 80px; /* IMPORTANT SPACE FOR INPUT BAR */
+    padding-bottom: 90px;
+
+    -webkit-overflow-scrolling: touch;
 }
 
 /* MESSAGE */
@@ -103,7 +106,7 @@ html, body {
     margin-bottom: 3px;
 }
 
-/* INPUT BAR (FIXED BOTTOM) */
+/* ================= INPUT BAR ================= */
 #form {
     display: flex;
     gap: 5px;
@@ -116,6 +119,8 @@ html, body {
     right: 0;
 
     z-index: 999;
+
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
 }
 
 #input {
@@ -136,22 +141,33 @@ button {
     cursor: pointer;
 }
 
-/* MOBILE */
+/* ================= MOBILE ================= */
 @media (max-width: 600px) {
     #header { font-size: 13px; }
-    .msg { max-width: 92%; font-size: 13px; }
-    button { padding: 8px; font-size: 12px; }
-    #input { font-size: 13px; }
+
+    .msg {
+        max-width: 92%;
+        font-size: 13px;
+    }
+
+    button {
+        padding: 8px;
+        font-size: 12px;
+    }
+
+    #input {
+        font-size: 13px;
+    }
 }
 </style>
 </head>
 
 <body>
 
-<!-- LOGIN -->
+<!-- ================= LOGIN ================= -->
 <div id="login">
     <div id="login-box">
-        <h2>👻 Ghost 💀 Chat</h2>
+        <h2>👻 Ghost 💀 Chat Pro</h2>
 
         <input id="usernameInput" placeholder="Enter Ghost Name">
         <br><br>
@@ -161,9 +177,9 @@ button {
     </div>
 </div>
 
-<!-- CHAT -->
+<!-- ================= CHAT ================= -->
 <div id="chat">
-    <div id="header">👻 Ghost 💀 Chat</div>
+    <div id="header">👻 Ghost 💀 Chat Pro</div>
 
     <div id="messages"></div>
 
@@ -183,7 +199,7 @@ let username = "";
 
 const messagesDiv = document.getElementById("messages");
 
-/* ---------------- AUTH ---------------- */
+/* ================= LOGIN / REGISTER ================= */
 
 async function register() {
     const usernameInput = document.getElementById("usernameInput").value;
@@ -191,7 +207,7 @@ async function register() {
 
     const res = await fetch("/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {"Content-Type":"application/json"},
         body: JSON.stringify({ username: usernameInput, password })
     });
 
@@ -205,7 +221,7 @@ async function login() {
 
     const res = await fetch("/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {"Content-Type":"application/json"},
         body: JSON.stringify({ username: usernameInput, password })
     });
 
@@ -225,7 +241,7 @@ function startChat() {
     document.getElementById("chat").style.display = "flex";
 }
 
-/* ---------------- ENTER KEY FIX ---------------- */
+/* ================= ENTER KEY ================= */
 
 document.getElementById("input").addEventListener("keydown", e => {
     if (e.key === "Enter") sendMessage();
@@ -235,7 +251,7 @@ document.getElementById("usernameInput").addEventListener("keydown", e => {
     if (e.key === "Enter") login();
 });
 
-/* ---------------- BASE64 ---------------- */
+/* ================= BASE64 ================= */
 
 function toBase64(file) {
     return new Promise(resolve => {
@@ -245,7 +261,7 @@ function toBase64(file) {
     });
 }
 
-/* ---------------- SEND MESSAGE ---------------- */
+/* ================= SEND ================= */
 
 async function sendMessage() {
     const text = document.getElementById("input").value;
@@ -264,7 +280,7 @@ async function sendMessage() {
     document.getElementById("file").value = "";
 }
 
-/* ---------------- VOICE ---------------- */
+/* ================= VOICE ================= */
 
 async function sendVoice() {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -292,7 +308,7 @@ async function sendVoice() {
     setTimeout(() => recorder.stop(), 4000);
 }
 
-/* ---------------- RECEIVE ---------------- */
+/* ================= RECEIVE ================= */
 
 socket.on("chat message", (msg) => {
 
