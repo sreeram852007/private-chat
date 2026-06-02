@@ -4,6 +4,8 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const mongoose = require("mongoose");
+const multer = require("multer");
+const path = require("path");
 
 const Message = require("./models/Message");
 
@@ -12,59 +14,56 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 // ================= MongoDB =================
-const mongoURI = process.env.MONGO_URI;
-
-if (!mongoURI) {
-    console.error("MONGO_URI is missing!");
-    process.exit(1);
-}
-
-mongoose.connect(mongoURI)
+mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log("MongoDB connected"))
-    .catch(err => console.error("MongoDB Error:", err));
+    .catch(err => console.log(err));
 
-// ================= Middleware =================
+// ================= Static =================
 app.use(express.static("public"));
+app.use("/uploads", express.static("uploads"));
+app.use(express.json());
 
-// ================= Socket.io =================
-io.on("connection", async (socket) => {
-    console.log("User connected");
-
-    // store username
-    socket.on("set username", (username) => {
-        socket.username = username;
-    });
-
-    // send history
-    try {
-        const messages = await Message.find().sort({ createdAt: 1 });
-        socket.emit("chat history", messages);
-    } catch (err) {
-        console.error("Error loading messages:", err);
+// ================= File Upload =================
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, "uploads"),
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + path.extname(file.originalname));
     }
+});
 
-    // receive message
-    socket.on("chat message", async (msg) => {
-        try {
-            const fullMessage = {
-                user: socket.username || "Anonymous",
-                text: msg
-            };
+const upload = multer({ storage });
 
-            await Message.create(fullMessage);
+// upload file route
+app.post("/upload", upload.single("file"), (req, res) => {
+    res.json({ fileUrl: "/uploads/" + req.file.filename });
+});
 
-            io.emit("chat message", fullMessage);
-        } catch (err) {
-            console.error("Error saving message:", err);
-        }
+// ================= Socket =================
+io.on("connection", async (socket) => {
+
+    socket.on("set username", (name) => {
+        socket.username = name;
     });
 
-    socket.on("disconnect", () => {
-        console.log("User disconnected");
+    const msgs = await Message.find().sort({ createdAt: 1 });
+    socket.emit("chat history", msgs);
+
+    socket.on("chat message", async (data) => {
+
+        const msg = {
+            user: socket.username || "Ghost",
+            text: data.text || "",
+            file: data.file || "",
+            voice: data.voice || "",
+            type: data.type
+        };
+
+        await Message.create(msg);
+
+        io.emit("chat message", msg);
     });
 });
 
-// ================= Start =================
 server.listen(3000, () => {
-    console.log("Server running on http://localhost:3000");
+    console.log("👻 Ghost Chat running on http://localhost:3000");
 });

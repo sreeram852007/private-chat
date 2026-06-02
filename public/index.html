@@ -1,159 +1,114 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Ghost Chat</title>
-    <style>
-        body {
-            margin: 0;
-            font-family: Arial;
-            background: #0d0f14;
-            color: white;
-        }
+<title>Ghost 💀 Chat</title>
 
-        /* LOGIN */
-        #login {
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: radial-gradient(circle at top, #111827, #05070c);
-        }
+<style>
+body {
+    margin: 0;
+    font-family: Arial;
+    background: #0b0f14;
+    color: white;
+}
 
-        #login-box {
-            background: #121826;
-            padding: 25px;
-            border-radius: 12px;
-            text-align: center;
-            box-shadow: 0 0 20px rgba(0,255,200,0.2);
-        }
+/* HEADER */
+#header {
+    background: #111827;
+    padding: 15px;
+    color: #00ffcc;
+    font-size: 18px;
+}
 
-        #login input {
-            width: 220px;
-            padding: 10px;
-            margin-top: 10px;
-            border: none;
-            border-radius: 6px;
-            background: #1f2937;
-            color: white;
-            outline: none;
-        }
+/* CHAT */
+#chat {
+    display: none;
+    height: 100vh;
+    flex-direction: column;
+}
 
-        #login button {
-            width: 100%;
-            margin-top: 10px;
-            padding: 10px;
-            border: none;
-            border-radius: 6px;
-            background: #00ffcc;
-            color: black;
-            font-weight: bold;
-            cursor: pointer;
-        }
+#messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+}
 
-        /* HEADER */
-        #header {
-            padding: 15px;
-            background: #0b1220;
-            border-bottom: 1px solid #1f2937;
-            font-size: 18px;
-            color: #00ffcc;
-            letter-spacing: 1px;
-        }
+/* MSG */
+.msg {
+    max-width: 70%;
+    padding: 10px;
+    margin: 6px;
+    border-radius: 10px;
+    clear: both;
+}
 
-        /* CHAT AREA */
-        #chat {
-            display: none;
-            height: 100vh;
-            flex-direction: column;
-        }
+.me { float: right; background: #00ffcc; color: black; }
+.other { float: left; background: #1f2937; }
 
-        #messages {
-            flex: 1;
-            padding: 15px;
-            overflow-y: auto;
-        }
+.user {
+    font-size: 11px;
+    opacity: 0.7;
+    display: block;
+}
 
-        /* MESSAGE BOX */
-        .msg {
-            max-width: 70%;
-            margin: 8px 0;
-            padding: 10px 12px;
-            border-radius: 10px;
-            word-wrap: break-word;
-            clear: both;
-            font-size: 14px;
-        }
+/* INPUT */
+#form {
+    display: flex;
+    padding: 10px;
+    background: #111827;
+}
 
-        .me {
-            float: right;
-            background: linear-gradient(135deg, #00ffcc, #00b3ff);
-            color: black;
-        }
+#input {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 20px;
+    background: #1f2937;
+    color: white;
+}
 
-        .other {
-            float: left;
-            background: #1f2937;
-            border: 1px solid #374151;
-        }
+/* BUTTONS */
+button {
+    margin-left: 5px;
+    padding: 10px;
+    border: none;
+    border-radius: 10px;
+    background: #00ffcc;
+}
 
-        .user {
-            font-size: 11px;
-            opacity: 0.7;
-            display: block;
-            margin-bottom: 4px;
-        }
-
-        /* INPUT */
-        #form {
-            display: flex;
-            padding: 10px;
-            background: #0b1220;
-            border-top: 1px solid #1f2937;
-        }
-
-        #form input {
-            flex: 1;
-            padding: 10px;
-            border-radius: 20px;
-            border: none;
-            background: #111827;
-            color: white;
-            outline: none;
-        }
-
-        #form button {
-            margin-left: 10px;
-            padding: 10px 15px;
-            border-radius: 20px;
-            border: none;
-            background: #00ffcc;
-            color: black;
-            font-weight: bold;
-            cursor: pointer;
-        }
-    </style>
+/* LOGIN */
+#login {
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: black;
+}
+</style>
 </head>
+
 <body>
 
-<!-- LOGIN -->
 <div id="login">
-    <div id="login-box">
-        <h2>👻 Ghost Chat</h2>
+    <div>
+        <h2>👻 Ghost 💀 Chat</h2>
         <input id="usernameInput" placeholder="Enter Ghost Name">
         <button onclick="startChat()">Enter</button>
     </div>
 </div>
 
-<!-- CHAT -->
 <div id="chat">
-    <div id="header">👻 Ghost Chat</div>
+    <div id="header">👻 Ghost 💀 Chat</div>
 
     <div id="messages"></div>
 
-    <form id="form">
-        <input id="input" placeholder="Type message..." autocomplete="off">
-        <button>Send</button>
-    </form>
+    <div id="form">
+        <input id="input" placeholder="Message...">
+
+        <input type="file" id="file">
+
+        <button onclick="sendVoice()">🎤</button>
+        <button onclick="send()">➤</button>
+    </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -161,44 +116,110 @@
 const socket = io();
 let username = "";
 
+// LOGIN
 function startChat() {
     username = document.getElementById("usernameInput").value;
-    if (!username) return;
-
     socket.emit("set username", username);
 
     document.getElementById("login").style.display = "none";
     document.getElementById("chat").style.display = "flex";
 }
 
-const form = document.getElementById("form");
-const input = document.getElementById("input");
-const messages = document.getElementById("messages");
+// SEND TEXT / FILE
+async function send() {
+    const text = document.getElementById("input").value;
+    const file = document.getElementById("file").files[0];
 
-form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    if (input.value) {
-        socket.emit("chat message", input.value);
-        input.value = "";
+    let fileUrl = "";
+
+    if (file) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const res = await fetch("/upload", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await res.json();
+        fileUrl = data.fileUrl;
     }
-});
 
-function addMessage(msg) {
+    socket.emit("chat message", {
+        text,
+        file: fileUrl,
+        type: file ? "file" : "text"
+    });
+
+    document.getElementById("input").value = "";
+}
+
+// VOICE MESSAGE
+let recorder;
+let chunks = [];
+
+async function sendVoice() {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    recorder = new MediaRecorder(stream);
+
+    recorder.start();
+
+    recorder.ondataavailable = e => {
+        chunks.push(e.data);
+    };
+
+    recorder.onstop = async () => {
+        const blob = new Blob(chunks, { type: "audio/webm" });
+        chunks = [];
+
+        const formData = new FormData();
+        formData.append("file", blob, "voice.webm");
+
+        const res = await fetch("/upload", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await res.json();
+
+        socket.emit("chat message", {
+            voice: data.fileUrl,
+            type: "voice"
+        });
+    };
+
+    setTimeout(() => recorder.stop(), 4000);
+}
+
+// RECEIVE
+socket.on("chat message", (msg) => {
     const div = document.createElement("div");
 
     const isMe = msg.user === username;
 
-    div.classList.add("msg");
-    div.classList.add(isMe ? "me" : "other");
+    div.className = "msg " + (isMe ? "me" : "other");
 
-    div.innerHTML = `<span class="user">${msg.user}</span>${msg.text}`;
+    let content = `<span class="user">${msg.user}</span>`;
 
-    messages.appendChild(div);
-    messages.scrollTop = messages.scrollHeight;
-}
+    if (msg.type === "text") content += msg.text;
 
-socket.on("chat message", addMessage);
-socket.on("chat history", (msgs) => msgs.forEach(addMessage));
+    if (msg.type === "file") {
+        content += `<br><a href="${msg.file}" target="_blank">📎 File</a>`;
+    }
+
+    if (msg.type === "voice") {
+        content += `<audio controls src="${msg.voice}"></audio>`;
+    }
+
+    div.innerHTML = content;
+
+    document.getElementById("messages").appendChild(div);
+});
+
+// HISTORY
+socket.on("chat history", msgs => {
+    msgs.forEach(m => socket.emit("chat message", m));
+});
 </script>
 
 </body>
