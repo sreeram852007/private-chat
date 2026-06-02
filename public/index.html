@@ -3,12 +3,16 @@
 <head>
 <title>Ghost 💀 Chat</title>
 
+<!-- ✅ IMPORTANT FOR MOBILE FIT -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
 body {
     margin: 0;
     font-family: Arial;
     background: #0b0f14;
     color: white;
+    overflow: hidden;
 }
 
 /* LOGIN */
@@ -18,58 +22,68 @@ body {
     justify-content: center;
     align-items: center;
     background: radial-gradient(circle, #0b0f14, black);
+    padding: 20px;
 }
 
 #login-box {
     text-align: center;
+    width: 100%;
+    max-width: 300px;
 }
 
 #usernameInput {
-    padding: 10px;
+    width: 100%;
+    padding: 12px;
     border-radius: 10px;
     border: none;
     background: #1f2937;
     color: white;
+    outline: none;
 }
 
-/* CHAT */
+/* CHAT WRAPPER */
 #chat {
     display: none;
     height: 100vh;
     flex-direction: column;
 }
 
+/* HEADER */
 #header {
     background: #111827;
-    padding: 15px;
+    padding: 12px;
     color: #00ffcc;
-    font-size: 18px;
+    font-size: 16px;
+    flex-shrink: 0;
 }
 
+/* MESSAGES */
 #messages {
     flex: 1;
     overflow-y: auto;
     padding: 10px;
+    display: flex;
+    flex-direction: column;
 }
 
-/* MESSAGE */
+/* MESSAGE BUBBLES */
 .msg {
-    max-width: 70%;
+    max-width: 80%;
     padding: 10px;
-    margin: 6px;
+    margin: 5px;
     border-radius: 12px;
-    clear: both;
     word-wrap: break-word;
+    font-size: 14px;
 }
 
 .me {
-    float: right;
+    align-self: flex-end;
     background: linear-gradient(135deg, #00ffcc, #00b3ff);
     color: black;
 }
 
 .other {
-    float: left;
+    align-self: flex-start;
     background: #1f2937;
 }
 
@@ -77,15 +91,16 @@ body {
     font-size: 11px;
     opacity: 0.7;
     display: block;
-    margin-bottom: 4px;
+    margin-bottom: 3px;
 }
 
 /* INPUT AREA */
 #form {
     display: flex;
-    padding: 10px;
+    padding: 8px;
     background: #111827;
     gap: 5px;
+    flex-shrink: 0;
 }
 
 #input {
@@ -96,6 +111,7 @@ body {
     background: #1f2937;
     color: white;
     outline: none;
+    font-size: 14px;
 }
 
 button {
@@ -104,13 +120,14 @@ button {
     border-radius: 10px;
     background: #00ffcc;
     cursor: pointer;
+    font-size: 14px;
 }
 
 /* FLOAT BUTTON */
 #scrollBtn {
     position: fixed;
     bottom: 90px;
-    right: 15px;
+    right: 12px;
     padding: 12px;
     border-radius: 50%;
     border: none;
@@ -118,7 +135,29 @@ button {
     color: black;
     display: none;
     cursor: pointer;
-    font-weight: bold;
+}
+
+/* 📱 MOBILE FIX */
+@media (max-width: 600px) {
+
+    #header {
+        font-size: 14px;
+        text-align: center;
+    }
+
+    .msg {
+        max-width: 90%;
+        font-size: 13px;
+    }
+
+    button {
+        padding: 8px;
+        font-size: 12px;
+    }
+
+    #input {
+        font-size: 13px;
+    }
 }
 </style>
 </head>
@@ -160,7 +199,7 @@ let username = "";
 const messagesDiv = document.getElementById("messages");
 const scrollBtn = document.getElementById("scrollBtn");
 
-// ---------------- LOGIN ----------------
+// LOGIN
 function startChat() {
     username = document.getElementById("usernameInput").value;
     if (!username) return;
@@ -171,19 +210,12 @@ function startChat() {
     document.getElementById("chat").style.display = "flex";
 }
 
-// ---------------- SCROLL ----------------
+// SCROLL
 function scrollToBottom() {
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
-messagesDiv.addEventListener("scroll", () => {
-    const nearBottom =
-        messagesDiv.scrollHeight - messagesDiv.scrollTop - messagesDiv.clientHeight < 120;
-
-    scrollBtn.style.display = nearBottom ? "none" : "block";
-});
-
-// ---------------- BASE64 ----------------
+// BASE64
 function toBase64(file) {
     return new Promise((resolve) => {
         const reader = new FileReader();
@@ -192,16 +224,13 @@ function toBase64(file) {
     });
 }
 
-// ---------------- SEND MESSAGE ----------------
+// SEND MESSAGE
 async function sendMessage() {
     const text = document.getElementById("input").value;
     const file = document.getElementById("file").files[0];
 
     let fileBase64 = "";
-
-    if (file) {
-        fileBase64 = await toBase64(file);
-    }
+    if (file) fileBase64 = await toBase64(file);
 
     socket.emit("chat message", {
         text,
@@ -213,7 +242,7 @@ async function sendMessage() {
     document.getElementById("file").value = "";
 }
 
-// ---------------- VOICE ----------------
+// VOICE
 async function sendVoice() {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const recorder = new MediaRecorder(stream);
@@ -228,11 +257,9 @@ async function sendVoice() {
         const reader = new FileReader();
 
         reader.onloadend = () => {
-            const base64 = reader.result.split(",")[1];
-
             socket.emit("chat message", {
                 type: "voice",
-                voice: base64
+                voice: reader.result.split(",")[1]
             });
         };
 
@@ -243,23 +270,20 @@ async function sendVoice() {
     setTimeout(() => recorder.stop(), 4000);
 }
 
-// ---------------- RECEIVE MESSAGE ----------------
+// RECEIVE
 socket.on("chat message", (msg) => {
 
     const div = document.createElement("div");
-
     const isMe = msg.user === username;
 
     div.className = "msg " + (isMe ? "me" : "other");
 
     let html = `<span class="user">${msg.user}</span>`;
 
-    if (msg.type === "text") {
-        html += msg.text;
-    }
+    if (msg.type === "text") html += msg.text;
 
     if (msg.type === "file") {
-        html += `<a href="data:application/octet-stream;base64,${msg.file}" download>📎 Download File</a>`;
+        html += `<a href="data:application/octet-stream;base64,${msg.file}" download>📎 File</a>`;
     }
 
     if (msg.type === "voice") {
@@ -267,38 +291,7 @@ socket.on("chat message", (msg) => {
     }
 
     div.innerHTML = html;
-
     messagesDiv.appendChild(div);
-
-    scrollToBottom();
-});
-
-// ---------------- HISTORY ----------------
-socket.on("chat history", (msgs) => {
-
-    msgs.forEach(msg => {
-
-        const div = document.createElement("div");
-
-        const isMe = msg.user === username;
-
-        div.className = "msg " + (isMe ? "me" : "other");
-
-        let html = `<span class="user">${msg.user}</span>`;
-
-        if (msg.type === "text") html += msg.text;
-
-        if (msg.type === "file") {
-            html += `<a href="data:application/octet-stream;base64,${msg.file}" download>📎 Download File</a>`;
-        }
-
-        if (msg.type === "voice") {
-            html += `<audio controls src="data:audio/webm;base64,${msg.voice}"></audio>`;
-        }
-
-        div.innerHTML = html;
-        messagesDiv.appendChild(div);
-    });
 
     scrollToBottom();
 });
