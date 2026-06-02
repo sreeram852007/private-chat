@@ -3,16 +3,19 @@
 <head>
 <title>Ghost 💀 Chat</title>
 
-<!-- ✅ IMPORTANT FOR MOBILE FIT -->
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- MOBILE FIX -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
 <style>
-body {
+html, body {
     margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
     font-family: Arial;
     background: #0b0f14;
     color: white;
-    overflow: hidden;
 }
 
 /* LOGIN */
@@ -22,13 +25,12 @@ body {
     justify-content: center;
     align-items: center;
     background: radial-gradient(circle, #0b0f14, black);
-    padding: 20px;
 }
 
 #login-box {
     text-align: center;
-    width: 100%;
-    max-width: 300px;
+    width: 90%;
+    max-width: 320px;
 }
 
 #usernameInput {
@@ -38,10 +40,9 @@ body {
     border: none;
     background: #1f2937;
     color: white;
-    outline: none;
 }
 
-/* CHAT WRAPPER */
+/* CHAT */
 #chat {
     display: none;
     height: 100vh;
@@ -50,11 +51,12 @@ body {
 
 /* HEADER */
 #header {
+    flex-shrink: 0;
     background: #111827;
     padding: 12px;
     color: #00ffcc;
-    font-size: 16px;
-    flex-shrink: 0;
+    font-size: 15px;
+    text-align: center;
 }
 
 /* MESSAGES */
@@ -64,11 +66,12 @@ body {
     padding: 10px;
     display: flex;
     flex-direction: column;
+    scroll-behavior: smooth;
 }
 
-/* MESSAGE BUBBLES */
+/* MESSAGE */
 .msg {
-    max-width: 80%;
+    max-width: 85%;
     padding: 10px;
     margin: 5px;
     border-radius: 12px;
@@ -94,12 +97,12 @@ body {
     margin-bottom: 3px;
 }
 
-/* INPUT AREA */
+/* INPUT */
 #form {
     display: flex;
+    gap: 5px;
     padding: 8px;
     background: #111827;
-    gap: 5px;
     flex-shrink: 0;
 }
 
@@ -111,7 +114,6 @@ body {
     background: #1f2937;
     color: white;
     outline: none;
-    font-size: 14px;
 }
 
 button {
@@ -120,13 +122,12 @@ button {
     border-radius: 10px;
     background: #00ffcc;
     cursor: pointer;
-    font-size: 14px;
 }
 
 /* FLOAT BUTTON */
 #scrollBtn {
     position: fixed;
-    bottom: 90px;
+    bottom: 85px;
     right: 12px;
     padding: 12px;
     border-radius: 50%;
@@ -134,19 +135,16 @@ button {
     background: #00ffcc;
     color: black;
     display: none;
-    cursor: pointer;
 }
 
-/* 📱 MOBILE FIX */
+/* MOBILE OPTIMIZATION */
 @media (max-width: 600px) {
-
     #header {
-        font-size: 14px;
-        text-align: center;
+        font-size: 13px;
     }
 
     .msg {
-        max-width: 90%;
+        max-width: 92%;
         font-size: 13px;
     }
 
@@ -217,14 +215,14 @@ function scrollToBottom() {
 
 // BASE64
 function toBase64(file) {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
         const reader = new FileReader();
         reader.onloadend = () => resolve(reader.result.split(",")[1]);
         reader.readAsDataURL(file);
     });
 }
 
-// SEND MESSAGE
+// SEND
 async function sendMessage() {
     const text = document.getElementById("input").value;
     const file = document.getElementById("file").files[0];
@@ -255,7 +253,6 @@ async function sendVoice() {
         const blob = new Blob(chunks, { type: "audio/webm" });
 
         const reader = new FileReader();
-
         reader.onloadend = () => {
             socket.emit("chat message", {
                 type: "voice",
