@@ -5,6 +5,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 const Message = require("./models/Message");
 const User = require("./models/User");
@@ -12,6 +13,10 @@ const User = require("./models/User");
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
+
+const JWT_SECRET = process.env.JWT_SECRET || "ghost_secret_key_123";
+
+/* ================= MIDDLEWARE ================= */
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.static("public"));
@@ -22,7 +27,7 @@ mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log("MongoDB connected"))
     .catch(err => console.log(err));
 
-/* ================= AUTH ================= */
+/* ================= AUTH APIs ================= */
 
 // REGISTER
 app.post("/register", async (req, res) => {
@@ -39,7 +44,17 @@ app.post("/register", async (req, res) => {
             password: hashed
         });
 
-        res.json({ user });
+        const token = jwt.sign(
+            { id: user._id, username: user.username },
+            JWT_SECRET,
+            { expiresIn: "7d" }
+        );
+
+        res.json({
+            token,
+            user: { username: user.username }
+        });
+
     } catch (err) {
         res.json({ error: "Register failed" });
     }
@@ -56,53 +71,74 @@ app.post("/login", async (req, res) => {
         const match = await bcrypt.compare(password, user.password);
         if (!match) return res.json({ error: "Wrong password" });
 
-        res.json({ user: { username: user.username } });
+        const token = jwt.sign(
+            { id: user._id, username: user.username },
+            JWT_SECRET,
+            { expiresIn: "7d" }
+        );
+
+        res.json({
+            token,
+            user: { username: user.username }
+        });
+
     } catch (err) {
         res.json({ error: "Login failed" });
     }
 });
 
-/* ================= SOCKET ================= */
+/* ================= SOCKET AUTH ================= */
 
 io.on("connection", async (socket) => {
 
     console.log("User connected");
 
-    // CHAT HISTORY (LIMIT FIX)
+    // LOAD LAST 1000 MESSAGES
     const messages = await Message.find()
         .sort({ createdAt: -1 })
         .limit(1000);
 
     socket.emit("chat history", messages.reverse());
 
-    socket.on("set user", (user) => {
-        socket.user = user.username;
+    // JWT AUTH
+    socket.on("set user", (token) => {
+        try {
+            const decoded = jwt.verify(token, JWT_SECRET);
+            socket.user = decoded.username;
+        } catch (err) {
+            socket.user = "Ghost";
+        }
     });
 
+    // CHAT MESSAGE
     socket.on("chat message", async (msg) => {
-
-        const saved = await Message.create({
-            user: socket.user || "Ghost",
-            text: msg.text,
-            file: msg.file,
-            voice: msg.voice,
-            type: msg.type
-        });
-
-        // AUTO LIMIT CLEANUP (keep last 1000)
-        const count = await Message.countDocuments();
-
-        if (count > 1000) {
-            const old = await Message.find()
-                .sort({ createdAt: 1 })
-                .limit(count - 1000);
-
-            await Message.deleteMany({
-                _id: { $in: old.map(m => m._id) }
+        try {
+            const saved = await Message.create({
+                user: socket.user || "Ghost",
+                text: msg.text,
+                file: msg.file,
+                voice: msg.voice,
+                type: msg.type
             });
-        }
 
-        io.emit("chat message", saved);
+            // KEEP ONLY LAST 1000 MESSAGES
+            const count = await Message.countDocuments();
+
+            if (count > 1000) {
+                const old = await Message.find()
+                    .sort({ createdAt: 1 })
+                    .limit(count - 1000);
+
+                await Message.deleteMany({
+                    _id: { $in: old.map(m => m._id) }
+                });
+            }
+
+            io.emit("chat message", saved);
+
+        } catch (err) {
+            console.log("Message error:", err);
+        }
     });
 
     socket.on("disconnect", () => {
@@ -110,8 +146,10 @@ io.on("connection", async (socket) => {
     });
 });
 
-/* ================= SERVER ================= */
+/* ================= START SERVER ================= */
 
-server.listen(3000, () => {
-    console.log("Ghost Pro running on http://localhost:3000");
+const PORT = process.env.PORT || 3000;
+
+server.listen(PORT, () => {
+    console.log(`Ghost Pro running on port ${PORT}`);
 });
