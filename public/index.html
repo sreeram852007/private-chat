@@ -1,339 +1,817 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
 <title>Ghost 💀 Chat Pro</title>
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
 <style>
-/* ================= GLOBAL FIX ================= */
-html, body {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100dvh;
-    overflow: hidden;
-    font-family: Arial;
-    background: #0b0f14;
-    color: white;
 
-    position: fixed;
-    top: 0;
-    left: 0;
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial,sans-serif;
+}
+
+html,body{
+    width:100%;
+    height:100vh;
+    overflow:hidden;
+    background:#0b0f14;
+    color:white;
 }
 
 /* ================= LOGIN ================= */
-#login {
-    height: 100dvh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: radial-gradient(circle, #0b0f14, black);
+
+#login{
+    width:100%;
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:radial-gradient(circle,#111827,#000);
 }
 
-#login-box {
-    text-align: center;
-    width: 90%;
-    max-width: 320px;
+#login-box{
+    width:90%;
+    max-width:350px;
+    text-align:center;
 }
 
-#usernameInput {
-    width: 100%;
-    padding: 12px;
-    border-radius: 10px;
-    border: none;
-    background: #1f2937;
-    color: white;
-    outline: none;
+#login-box h2{
+    margin-bottom:20px;
+    color:#00ffcc;
+}
+
+#usernameInput{
+    width:100%;
+    padding:12px;
+    border:none;
+    border-radius:10px;
+    background:#1f2937;
+    color:white;
+    margin-bottom:15px;
+}
+
+.login-btn{
+    padding:10px 15px;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    background:#00ffcc;
+    margin:5px;
 }
 
 /* ================= CHAT ================= */
-#chat {
-    display: none;
-    height: 100dvh;
-    width: 100%;
-    flex-direction: column;
+
+#chat{
+    display:none;
+    width:100%;
+    height:100vh;
 }
 
-/* HEADER */
-#header {
-    flex-shrink: 0;
-    background: #111827;
-    padding: 12px;
-    color: #00ffcc;
-    font-size: 15px;
-    text-align: center;
+/* LEFT USERS PANEL */
+
+#sidebar{
+    width:280px;
+    background:#111827;
+    border-right:1px solid #222;
+    overflow-y:auto;
 }
 
-/* MESSAGES */
-#messages {
-    flex: 1;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    padding: 10px;
-
-    padding-bottom: 90px;
-
-    -webkit-overflow-scrolling: touch;
+#sidebar-header{
+    padding:15px;
+    font-weight:bold;
+    color:#00ffcc;
+    border-bottom:1px solid #222;
 }
 
-/* MESSAGE */
-.msg {
-    max-width: 85%;
-    padding: 10px;
-    margin: 5px;
-    border-radius: 12px;
-    word-wrap: break-word;
-    font-size: 14px;
+.user-item{
+    padding:12px;
+    cursor:pointer;
+    border-bottom:1px solid #1f2937;
 }
 
-.me {
-    align-self: flex-end;
-    background: linear-gradient(135deg, #00ffcc, #00b3ff);
-    color: black;
+.user-item:hover{
+    background:#1f2937;
 }
 
-.other {
-    align-self: flex-start;
-    background: #1f2937;
+.user-online{
+    color:#00ff66;
+    font-size:12px;
 }
 
-.user {
-    font-size: 11px;
-    opacity: 0.7;
-    display: block;
-    margin-bottom: 3px;
+.user-offline{
+    color:#888;
+    font-size:12px;
 }
 
-/* ================= INPUT BAR ================= */
-#form {
-    display: flex;
-    gap: 5px;
-    padding: 8px;
-    background: #111827;
+/* RIGHT CHAT AREA */
 
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-
-    z-index: 999;
-
-    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+#chat-area{
+    flex:1;
+    display:flex;
+    flex-direction:column;
 }
 
-#input {
-    flex: 1;
-    padding: 10px;
-    border-radius: 20px;
-    border: none;
-    background: #1f2937;
-    color: white;
-    outline: none;
+#header{
+    background:#111827;
+    padding:15px;
+    color:#00ffcc;
+    border-bottom:1px solid #222;
 }
 
-button {
-    padding: 10px;
-    border: none;
-    border-radius: 10px;
-    background: #00ffcc;
-    cursor: pointer;
+#messages{
+    flex:1;
+    overflow-y:auto;
+    padding:15px;
+    display:flex;
+    flex-direction:column;
 }
 
-/* ================= MOBILE ================= */
-@media (max-width: 600px) {
-    #header { font-size: 13px; }
+.msg{
+    max-width:75%;
+    padding:10px;
+    border-radius:12px;
+    margin:5px 0;
+    word-wrap:break-word;
+}
 
-    .msg {
-        max-width: 92%;
-        font-size: 13px;
+.me{
+    align-self:flex-end;
+    background:linear-gradient(
+        135deg,
+        #00ffcc,
+        #00b3ff
+    );
+    color:black;
+}
+
+.other{
+    align-self:flex-start;
+    background:#1f2937;
+}
+
+.user{
+    display:block;
+    font-size:11px;
+    opacity:.7;
+    margin-bottom:3px;
+}
+
+#form{
+    display:flex;
+    gap:5px;
+    padding:10px;
+    background:#111827;
+}
+
+#input{
+    flex:1;
+    padding:10px;
+    border:none;
+    border-radius:20px;
+    background:#1f2937;
+    color:white;
+}
+
+button{
+    border:none;
+    border-radius:10px;
+    padding:10px;
+    cursor:pointer;
+    background:#00ffcc;
+}
+
+@media(max-width:768px){
+
+    #sidebar{
+        width:120px;
     }
 
-    button {
-        padding: 8px;
-        font-size: 12px;
-    }
-
-    #input {
-        font-size: 13px;
+    .msg{
+        max-width:90%;
     }
 }
+
 </style>
 </head>
 
 <body>
 
-<!-- ================= LOGIN ================= -->
+<!-- LOGIN -->
+
 <div id="login">
+
     <div id="login-box">
+
         <h2>👻 Ghost 💀 Chat Pro</h2>
 
-        <input id="usernameInput" placeholder="Enter Ghost Name">
-        <br><br>
+        <input
+            id="usernameInput"
+            placeholder="Username">
 
-        <button onclick="login()">Login</button>
-        <button onclick="register()">Register</button>
+        <br>
+
+        <button
+            class="login-btn"
+            onclick="login()">
+            Login
+        </button>
+
+        <button
+            class="login-btn"
+            onclick="register()">
+            Register
+        </button>
+
     </div>
+
 </div>
 
-<!-- ================= CHAT ================= -->
+<!-- CHAT -->
+
 <div id="chat">
-    <div id="header">👻 Ghost 💀 Chat Pro</div>
 
-    <div id="messages"></div>
+    <!-- SIDEBAR -->
 
-    <div id="form">
-        <input id="input" placeholder="Message...">
-        <input type="file" id="file">
+    <div id="sidebar">
 
-        <button onclick="sendVoice()">🎤</button>
-        <button onclick="sendMessage()">➤</button>
+        <div id="sidebar-header">
+            Users
+        </div>
+
+        <div id="usersList"></div>
+
     </div>
+
+    <!-- CHAT AREA -->
+
+    <div id="chat-area">
+
+        <div id="header">
+            Select a user
+        </div>
+
+        <div id="messages"></div>
+
+        <div id="form">
+
+            <input
+                id="input"
+                placeholder="Type message...">
+
+            <input
+                type="file"
+                id="file">
+
+            <button onclick="sendVoice()">
+                🎤
+            </button>
+
+            <button onclick="sendMessage()">
+                ➤
+            </button>
+
+        </div>
+
+    </div>
+
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
+
 <script>
+
 const socket = io();
+
 let username = "";
+let token = "";
+let selectedUser = "";
+let onlineUsers = [];
 
-const messagesDiv = document.getElementById("messages");
+const messagesDiv =
+    document.getElementById("messages");
 
-/* ================= LOGIN / REGISTER ================= */
+const usersList =
+    document.getElementById("usersList");
+    function startChat() {
+
+    document.getElementById("login")
+        .style.display = "none";
+
+    document.getElementById("chat")
+        .style.display = "flex";
+
+    loadUsers();
+}
+
+/* ================= REGISTER ================= */
 
 async function register() {
-    const usernameInput = document.getElementById("usernameInput").value;
-    const password = prompt("Create password");
 
-    const res = await fetch("/register", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({ username: usernameInput, password })
-    });
+    const usernameInput =
+        document.getElementById(
+            "usernameInput"
+        ).value.trim();
 
-    const data = await res.json();
-    alert(data.error || "Registered!");
+    if (!usernameInput) {
+        alert("Enter username");
+        return;
+    }
+
+    const password =
+        prompt("Create password");
+
+    if (!password) return;
+
+    const res =
+        await fetch("/register", {
+            method: "POST",
+            headers: {
+                "Content-Type":
+                    "application/json"
+            },
+            body: JSON.stringify({
+                username: usernameInput,
+                password
+            })
+        });
+
+    const data =
+        await res.json();
+
+    if (data.error) {
+        alert(data.error);
+        return;
+    }
+
+    alert("Registered successfully");
 }
+
+/* ================= LOGIN ================= */
 
 async function login() {
-    const usernameInput = document.getElementById("usernameInput").value;
-    const password = prompt("Enter password");
 
-    const res = await fetch("/login", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({ username: usernameInput, password })
+    const usernameInput =
+        document.getElementById(
+            "usernameInput"
+        ).value.trim();
+
+    const password =
+        prompt("Enter password");
+
+    if (!password) return;
+
+    const res =
+        await fetch("/login", {
+            method: "POST",
+            headers: {
+                "Content-Type":
+                    "application/json"
+            },
+            body: JSON.stringify({
+                username: usernameInput,
+                password
+            })
+        });
+
+    const data =
+        await res.json();
+
+    if (!data.user) {
+
+        alert(
+            data.error ||
+            "Login failed"
+        );
+
+        return;
+    }
+
+    username =
+        data.user.username;
+
+    token =
+        data.token;
+
+    socket.emit(
+        "set user",
+        token
+    );
+
+    startChat();
+}
+
+/* ================= USERS ================= */
+
+async function loadUsers() {
+
+    const res =
+        await fetch("/users");
+
+    const users =
+        await res.json();
+
+    usersList.innerHTML = "";
+
+    users.forEach(user => {
+
+        if (
+            user.username ===
+            username
+        ) return;
+
+        const div =
+            document.createElement(
+                "div"
+            );
+
+        div.className =
+            "user-item";
+
+        const online =
+            onlineUsers.includes(
+                user.username
+            );
+
+        div.innerHTML = `
+            <div>
+                ${user.username}
+            </div>
+
+            <div class="${
+                online
+                ? "user-online"
+                : "user-offline"
+            }">
+                ${
+                    online
+                    ? "● Online"
+                    : "● Offline"
+                }
+            </div>
+        `;
+
+        div.onclick = () =>
+            openChat(
+                user.username
+            );
+
+        usersList.appendChild(
+            div
+        );
+    });
+}
+
+/* ================= OPEN CHAT ================= */
+
+async function openChat(user) {
+
+    selectedUser = user;
+
+    document
+        .getElementById(
+            "header"
+        )
+        .innerText =
+            "Chat with " + user;
+
+    messagesDiv.innerHTML = "";
+
+    const res =
+        await fetch(
+            `/messages/${username}/${user}`
+        );
+
+    const messages =
+        await res.json();
+
+    messages.forEach(msg => {
+        renderMessage(msg);
     });
 
-    const data = await res.json();
+    messagesDiv.scrollTop =
+        messagesDiv.scrollHeight;
+}
 
-    if (data.user) {
-        username = data.user.username;
-        socket.emit("set user", data.user);
-        startChat();
-    } else {
-        alert(data.error);
+/* ================= ONLINE USERS ================= */
+
+socket.on(
+    "online users",
+    users => {
+
+        onlineUsers = users;
+
+        loadUsers();
     }
-}
-
-function startChat() {
-    document.getElementById("login").style.display = "none";
-    document.getElementById("chat").style.display = "flex";
-}
+);
 
 /* ================= ENTER KEY ================= */
 
-document.getElementById("input").addEventListener("keydown", e => {
-    if (e.key === "Enter") sendMessage();
-});
+document
+.getElementById("input")
+.addEventListener(
+    "keydown",
+    e => {
 
-document.getElementById("usernameInput").addEventListener("keydown", e => {
-    if (e.key === "Enter") login();
-});
+        if (
+            e.key === "Enter"
+        ) {
+            sendMessage();
+        }
+    }
+);
+
+document
+.getElementById(
+    "usernameInput"
+)
+.addEventListener(
+    "keydown",
+    e => {
+
+        if (
+            e.key === "Enter"
+        ) {
+            login();
+        }
+    }
+);
 
 /* ================= BASE64 ================= */
 
 function toBase64(file) {
-    return new Promise(resolve => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result.split(",")[1]);
-        reader.readAsDataURL(file);
-    });
-}
 
-/* ================= SEND ================= */
+    return new Promise(
+        resolve => {
+
+            const reader =
+                new FileReader();
+
+            reader.onloadend =
+                () => {
+
+                resolve(
+                    reader.result
+                    .split(",")[1]
+                );
+            };
+
+            reader.readAsDataURL(
+                file
+            );
+        }
+    );
+}
+/* ================= SEND MESSAGE ================= */
 
 async function sendMessage() {
-    const text = document.getElementById("input").value;
-    const file = document.getElementById("file").files[0];
+
+    if (!selectedUser) {
+        alert("Select a user first");
+        return;
+    }
+
+    const text =
+        document
+        .getElementById("input")
+        .value
+        .trim();
+
+    const file =
+        document
+        .getElementById("file")
+        .files[0];
 
     let fileBase64 = "";
-    if (file) fileBase64 = await toBase64(file);
 
-    socket.emit("chat message", {
-        text,
-        type: file ? "file" : "text",
-        file: fileBase64
-    });
+    if (file) {
+        fileBase64 =
+            await toBase64(file);
+    }
 
-    document.getElementById("input").value = "";
-    document.getElementById("file").value = "";
+    if (
+        !text &&
+        !fileBase64
+    ) {
+        return;
+    }
+
+    socket.emit(
+        "private message",
+        {
+            receiver:
+                selectedUser,
+
+            text,
+
+            type:
+                file
+                ? "file"
+                : "text",
+
+            file:
+                fileBase64
+        }
+    );
+
+    document
+        .getElementById("input")
+        .value = "";
+
+    document
+        .getElementById("file")
+        .value = "";
 }
 
 /* ================= VOICE ================= */
 
 async function sendVoice() {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const recorder = new MediaRecorder(stream);
+
+    if (!selectedUser) {
+        alert("Select a user first");
+        return;
+    }
+
+    const stream =
+        await navigator
+        .mediaDevices
+        .getUserMedia({
+            audio: true
+        });
+
+    const recorder =
+        new MediaRecorder(
+            stream
+        );
 
     let chunks = [];
 
-    recorder.ondataavailable = e => chunks.push(e.data);
-
-    recorder.onstop = async () => {
-        const blob = new Blob(chunks, { type: "audio/webm" });
-
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            socket.emit("chat message", {
-                type: "voice",
-                voice: reader.result.split(",")[1]
-            });
+    recorder.ondataavailable =
+        e => {
+            chunks.push(
+                e.data
+            );
         };
 
-        reader.readAsDataURL(blob);
-    };
+    recorder.onstop =
+        () => {
+
+            const blob =
+                new Blob(
+                    chunks,
+                    {
+                        type:
+                        "audio/webm"
+                    }
+                );
+
+            const reader =
+                new FileReader();
+
+            reader.onloadend =
+                () => {
+
+                socket.emit(
+                    "private message",
+                    {
+                        receiver:
+                            selectedUser,
+
+                        type:
+                            "voice",
+
+                        voice:
+                            reader
+                            .result
+                            .split(",")[1]
+                    }
+                );
+            };
+
+            reader.readAsDataURL(
+                blob
+            );
+        };
 
     recorder.start();
-    setTimeout(() => recorder.stop(), 4000);
+
+    setTimeout(
+        () => recorder.stop(),
+        4000
+    );
+}
+
+/* ================= RENDER ================= */
+
+function renderMessage(msg) {
+
+    const div =
+        document.createElement(
+            "div"
+        );
+
+    const isMe =
+        msg.sender ===
+        username;
+
+    div.className =
+        "msg " +
+        (
+            isMe
+            ? "me"
+            : "other"
+        );
+
+    let html =
+        `<span class="user">${
+            msg.sender
+        }</span>`;
+
+    if (
+        msg.type ===
+        "text"
+    ) {
+
+        html +=
+            msg.text || "";
+    }
+
+    if (
+        msg.type ===
+        "file"
+    ) {
+
+        html += `
+        <a
+        href="data:application/octet-stream;base64,${msg.file}"
+        download>
+        📎 Download File
+        </a>
+        `;
+    }
+
+    if (
+        msg.type ===
+        "voice"
+    ) {
+
+        html += `
+        <br>
+        <audio
+        controls
+        src="data:audio/webm;base64,${msg.voice}">
+        </audio>
+        `;
+    }
+
+    div.innerHTML =
+        html;
+
+    messagesDiv
+        .appendChild(div);
+
+    messagesDiv.scrollTop =
+        messagesDiv.scrollHeight;
 }
 
 /* ================= RECEIVE ================= */
 
-socket.on("chat message", (msg) => {
+socket.on(
+    "private message",
+    msg => {
 
-    const div = document.createElement("div");
-    const isMe = msg.user === username;
+        const currentChat =
+            (
+                msg.sender ===
+                selectedUser
+                &&
+                msg.receiver ===
+                username
+            )
+            ||
+            (
+                msg.sender ===
+                username
+                &&
+                msg.receiver ===
+                selectedUser
+            );
 
-    div.className = "msg " + (isMe ? "me" : "other");
-
-    let html = `<span class="user">${msg.user}</span>`;
-
-    if (msg.type === "text") html += msg.text;
-
-    if (msg.type === "file") {
-        html += `<a href="data:application/octet-stream;base64,${msg.file}" download>📎 File</a>`;
+        if (
+            currentChat
+        ) {
+            renderMessage(
+                msg
+            );
+        }
     }
+);
 
-    if (msg.type === "voice") {
-        html += `<audio controls src="data:audio/webm;base64,${msg.voice}"></audio>`;
-    }
-
-    div.innerHTML = html;
-    messagesDiv.appendChild(div);
-
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-});
 </script>
 
 </body>

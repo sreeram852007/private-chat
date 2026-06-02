@@ -12,13 +12,22 @@ const User = require("./models/User");
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
 
-const JWT_SECRET = process.env.JWT_SECRET || "ghost_secret_key_123";
+const io = new Server(server, {
+    cors: {
+        origin: "*"
+    }
+});
+
+const JWT_SECRET =
+    process.env.JWT_SECRET ||
+    "ghost_secret_key_123";
+
+const onlineUsers = {};
 
 /* ================= MIDDLEWARE ================= */
 
-app.use(express.json({ limit: "10mb" }));
+app.use(express.json({ limit: "20mb" }));
 app.use(express.static("public"));
 
 /* ================= DATABASE ================= */
@@ -27,17 +36,26 @@ mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log("MongoDB connected"))
     .catch(err => console.log(err));
 
-/* ================= AUTH APIs ================= */
+/* ================= AUTH ================= */
 
 // REGISTER
 app.post("/register", async (req, res) => {
     try {
+
         const { username, password } = req.body;
 
-        const exists = await User.findOne({ username });
-        if (exists) return res.json({ error: "User already exists" });
+        const exists = await User.findOne({
+            username
+        });
 
-        const hashed = await bcrypt.hash(password, 10);
+        if (exists) {
+            return res.json({
+                error: "User already exists"
+            });
+        }
+
+        const hashed =
+            await bcrypt.hash(password, 10);
 
         const user = await User.create({
             username,
@@ -45,111 +63,281 @@ app.post("/register", async (req, res) => {
         });
 
         const token = jwt.sign(
-            { id: user._id, username: user.username },
+            {
+                id: user._id,
+                username: user.username
+            },
             JWT_SECRET,
             { expiresIn: "7d" }
         );
 
         res.json({
             token,
-            user: { username: user.username }
+            user: {
+                username: user.username
+            }
         });
 
     } catch (err) {
-        res.json({ error: "Register failed" });
+        console.log(err);
+
+        res.json({
+            error: "Register failed"
+        });
     }
 });
 
 // LOGIN
 app.post("/login", async (req, res) => {
+
     try {
+
         const { username, password } = req.body;
 
-        const user = await User.findOne({ username });
-        if (!user) return res.json({ error: "User not found" });
+        const user =
+            await User.findOne({ username });
 
-        const match = await bcrypt.compare(password, user.password);
-        if (!match) return res.json({ error: "Wrong password" });
+        if (!user) {
+            return res.json({
+                error: "User not found"
+            });
+        }
+
+        const match =
+            await bcrypt.compare(
+                password,
+                user.password
+            );
+
+        if (!match) {
+            return res.json({
+                error: "Wrong password"
+            });
+        }
 
         const token = jwt.sign(
-            { id: user._id, username: user.username },
+            {
+                id: user._id,
+                username: user.username
+            },
             JWT_SECRET,
             { expiresIn: "7d" }
         );
 
         res.json({
             token,
-            user: { username: user.username }
+            user: {
+                username: user.username
+            }
         });
 
     } catch (err) {
-        res.json({ error: "Login failed" });
+
+        console.log(err);
+
+        res.json({
+            error: "Login failed"
+        });
     }
 });
 
-/* ================= SOCKET AUTH ================= */
+/* ================= USERS API ================= */
 
-io.on("connection", async (socket) => {
+app.get("/users", async (req, res) => {
 
-    console.log("User connected");
+    try {
 
-    // LOAD LAST 1000 MESSAGES
-    const messages = await Message.find()
-        .sort({ createdAt: -1 })
-        .limit(1000);
-
-    socket.emit("chat history", messages.reverse());
-
-    // JWT AUTH
-    socket.on("set user", (token) => {
-        try {
-            const decoded = jwt.verify(token, JWT_SECRET);
-            socket.user = decoded.username;
-        } catch (err) {
-            socket.user = "Ghost";
-        }
-    });
-
-    // CHAT MESSAGE
-    socket.on("chat message", async (msg) => {
-        try {
-            const saved = await Message.create({
-                user: socket.user || "Ghost",
-                text: msg.text,
-                file: msg.file,
-                voice: msg.voice,
-                type: msg.type
-            });
-
-            // KEEP ONLY LAST 1000 MESSAGES
-            const count = await Message.countDocuments();
-
-            if (count > 1000) {
-                const old = await Message.find()
-                    .sort({ createdAt: 1 })
-                    .limit(count - 1000);
-
-                await Message.deleteMany({
-                    _id: { $in: old.map(m => m._id) }
-                });
+        const users = await User.find(
+            {},
+            {
+                username: 1,
+                _id: 0
             }
+        );
 
-            io.emit("chat message", saved);
+        res.json(users);
 
-        } catch (err) {
-            console.log("Message error:", err);
-        }
-    });
+    } catch (err) {
 
-    socket.on("disconnect", () => {
-        console.log("User disconnected");
-    });
+        res.json([]);
+    }
 });
 
-/* ================= START SERVER ================= */
+/* ================= CHAT HISTORY ================= */
 
-const PORT = process.env.PORT || 3000;
+app.get(
+    "/messages/:user1/:user2",
+    async (req, res) => {
+
+        try {
+
+            const { user1, user2 } =
+                req.params;
+
+            const messages =
+                await Message.find({
+                    $or: [
+                        {
+                            sender: user1,
+                            receiver: user2
+                        },
+                        {
+                            sender: user2,
+                            receiver: user1
+                        }
+                    ]
+                })
+                    .sort({
+                        createdAt: 1
+                    });
+
+            res.json(messages);
+
+        } catch (err) {
+
+            console.log(err);
+
+            res.json([]);
+        }
+    }
+);
+
+/* ================= SOCKET ================= */
+
+io.on("connection", socket => {
+
+    console.log("Connected:", socket.id);
+
+    socket.on("set user", token => {
+
+        try {
+
+            const decoded =
+                jwt.verify(
+                    token,
+                    JWT_SECRET
+                );
+
+            socket.username =
+                decoded.username;
+
+            onlineUsers[
+                decoded.username
+            ] = socket.id;
+
+            io.emit(
+                "online users",
+                Object.keys(onlineUsers)
+            );
+
+            console.log(
+                decoded.username,
+                "online"
+            );
+
+        } catch (err) {
+
+            console.log(
+                "JWT verify failed"
+            );
+        }
+    });
+
+    socket.on(
+        "private message",
+        async msg => {
+
+            try {
+
+                const receiverSocket =
+                    onlineUsers[
+                        msg.receiver
+                    ];
+
+                const saved =
+                    await Message.create({
+                        sender:
+                            socket.username,
+
+                        receiver:
+                            msg.receiver,
+
+                        text:
+                            msg.text || "",
+
+                        file:
+                            msg.file || "",
+
+                        voice:
+                            msg.voice || "",
+
+                        type:
+                            msg.type || "text"
+                    });
+
+                socket.emit(
+                    "private message",
+                    saved
+                );
+
+                if (
+                    receiverSocket
+                ) {
+
+                    io.to(
+                        receiverSocket
+                    ).emit(
+                        "private message",
+                        saved
+                    );
+                }
+
+            } catch (err) {
+
+                console.log(
+                    "Private message error:",
+                    err
+                );
+            }
+        }
+    );
+
+    socket.on(
+        "disconnect",
+        () => {
+
+            if (
+                socket.username
+            ) {
+
+                delete onlineUsers[
+                    socket.username
+                ];
+
+                io.emit(
+                    "online users",
+                    Object.keys(
+                        onlineUsers
+                    )
+                );
+
+                console.log(
+                    socket.username,
+                    "offline"
+                );
+            }
+        }
+    );
+});
+
+/* ================= START ================= */
+
+const PORT =
+    process.env.PORT || 3000;
 
 server.listen(PORT, () => {
-    console.log(`Ghost Pro running on port ${PORT}`);
+
+    console.log(
+        `Ghost Pro running on port ${PORT}`
+    );
 });
