@@ -75,11 +75,16 @@ html,body{
 
 /* LEFT USERS PANEL */
 
+#menuBtn{
+    margin-right:10px;
+}
+
 #sidebar{
     width:280px;
     background:#111827;
     border-right:1px solid #222;
     overflow-y:auto;
+    transition:.3s;
 }
 
 #sidebar-header{
@@ -189,7 +194,26 @@ button{
 @media(max-width:768px){
 
     #sidebar{
-        width:120px;
+        position:fixed;
+        left:0;
+        top:0;
+        bottom:0;
+        width:280px;
+        z-index:9999;
+    }
+
+    #sidebar.closed{
+        transform:translateX(-100%);
+    }
+
+    #chat-area{
+        width:100%;
+    }
+
+    .user-item{
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
     }
 
     .msg{
@@ -238,7 +262,7 @@ button{
 
     <!-- SIDEBAR -->
 
-    <div id="sidebar">
+    <div id="sidebar" class="closed">
 
         <div id="sidebar-header">
             Users
@@ -252,9 +276,18 @@ button{
 
     <div id="chat-area">
 
-        <div id="header">
-            Select a user
-        </div>
+      <div id="header">
+
+    <button id="menuBtn"
+        onclick="toggleUsers()">
+        ☰ Users
+    </button>
+
+    <span id="chatTitle">
+        Select a user
+    </span>
+
+</div>
 
         <div id="messages"></div>
 
@@ -298,6 +331,13 @@ const messagesDiv =
 
 const usersList =
     document.getElementById("usersList");
+    function toggleUsers(){
+
+    document
+        .getElementById("sidebar")
+        .classList
+        .toggle("closed");
+}
     function startChat() {
 
     document.getElementById("login")
@@ -472,6 +512,13 @@ async function loadUsers() {
 async function openChat(user) {
 
     selectedUser = user;
+    if(window.innerWidth < 768){
+
+    document
+        .getElementById("sidebar")
+        .classList
+        .add("closed");
+}
 
     document
         .getElementById(
