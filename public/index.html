@@ -1,92 +1,114 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>WhatsApp Chat</title>
+    <title>Ghost Chat</title>
     <style>
         body {
             margin: 0;
             font-family: Arial;
-            background: #e5ddd5;
+            background: #0d0f14;
+            color: white;
         }
 
+        /* LOGIN */
         #login {
             height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            background: #075e54;
-            color: white;
+            background: radial-gradient(circle at top, #111827, #05070c);
         }
 
         #login-box {
-            background: white;
-            color: black;
-            padding: 20px;
-            border-radius: 10px;
+            background: #121826;
+            padding: 25px;
+            border-radius: 12px;
             text-align: center;
+            box-shadow: 0 0 20px rgba(0,255,200,0.2);
         }
 
         #login input {
+            width: 220px;
             padding: 10px;
-            width: 200px;
+            margin-top: 10px;
+            border: none;
+            border-radius: 6px;
+            background: #1f2937;
+            color: white;
+            outline: none;
         }
 
         #login button {
-            padding: 10px;
-            margin-top: 10px;
             width: 100%;
-            background: #25D366;
+            margin-top: 10px;
+            padding: 10px;
             border: none;
-            color: white;
+            border-radius: 6px;
+            background: #00ffcc;
+            color: black;
+            font-weight: bold;
+            cursor: pointer;
         }
 
+        /* HEADER */
+        #header {
+            padding: 15px;
+            background: #0b1220;
+            border-bottom: 1px solid #1f2937;
+            font-size: 18px;
+            color: #00ffcc;
+            letter-spacing: 1px;
+        }
+
+        /* CHAT AREA */
         #chat {
             display: none;
             height: 100vh;
             flex-direction: column;
         }
 
-        #header {
-            background: #075e54;
-            color: white;
-            padding: 15px;
-        }
-
         #messages {
             flex: 1;
-            padding: 10px;
+            padding: 15px;
             overflow-y: auto;
         }
 
+        /* MESSAGE BOX */
         .msg {
             max-width: 70%;
-            padding: 8px;
-            margin: 6px;
+            margin: 8px 0;
+            padding: 10px 12px;
             border-radius: 10px;
             word-wrap: break-word;
             clear: both;
+            font-size: 14px;
         }
 
         .me {
-            background: #dcf8c6;
             float: right;
+            background: linear-gradient(135deg, #00ffcc, #00b3ff);
+            color: black;
         }
 
         .other {
-            background: white;
             float: left;
+            background: #1f2937;
+            border: 1px solid #374151;
         }
 
         .user {
-            font-size: 12px;
-            font-weight: bold;
+            font-size: 11px;
+            opacity: 0.7;
             display: block;
+            margin-bottom: 4px;
         }
 
+        /* INPUT */
         #form {
             display: flex;
             padding: 10px;
-            background: #f0f0f0;
+            background: #0b1220;
+            border-top: 1px solid #1f2937;
         }
 
         #form input {
@@ -94,15 +116,20 @@
             padding: 10px;
             border-radius: 20px;
             border: none;
+            background: #111827;
+            color: white;
+            outline: none;
         }
 
         #form button {
             margin-left: 10px;
-            padding: 10px;
-            background: #075e54;
-            color: white;
-            border: none;
+            padding: 10px 15px;
             border-radius: 20px;
+            border: none;
+            background: #00ffcc;
+            color: black;
+            font-weight: bold;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -111,15 +138,15 @@
 <!-- LOGIN -->
 <div id="login">
     <div id="login-box">
-        <h2>Enter Name</h2>
-        <input id="usernameInput" placeholder="Username">
-        <button onclick="startChat()">Join</button>
+        <h2>👻 Ghost Chat</h2>
+        <input id="usernameInput" placeholder="Enter Ghost Name">
+        <button onclick="startChat()">Enter</button>
     </div>
 </div>
 
 <!-- CHAT -->
 <div id="chat">
-    <div id="header">💬 WhatsApp Style Chat</div>
+    <div id="header">👻 Ghost Chat</div>
 
     <div id="messages"></div>
 
