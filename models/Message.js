@@ -5,7 +5,11 @@ const MessageSchema = new mongoose.Schema({
     text: String,
     file: String,
     voice: String,
-    type: String,
+    type: {
+        type: String,
+        enum: ["text", "file", "voice"],
+        default: "text"
+    },
     createdAt: { type: Date, default: Date.now }
 });
 
