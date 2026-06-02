@@ -1,19 +1,178 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Private Chat</title>
+    <title>WhatsApp Chat</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial;
+            background: #e5ddd5;
+        }
+
+        #login {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #075e54;
+            color: white;
+        }
+
+        #login-box {
+            background: white;
+            color: black;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        #login input {
+            padding: 10px;
+            width: 200px;
+        }
+
+        #login button {
+            padding: 10px;
+            margin-top: 10px;
+            width: 100%;
+            background: #25D366;
+            border: none;
+            color: white;
+        }
+
+        #chat {
+            display: none;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        #header {
+            background: #075e54;
+            color: white;
+            padding: 15px;
+        }
+
+        #messages {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+        }
+
+        .msg {
+            max-width: 70%;
+            padding: 8px;
+            margin: 6px;
+            border-radius: 10px;
+            word-wrap: break-word;
+            clear: both;
+        }
+
+        .me {
+            background: #dcf8c6;
+            float: right;
+        }
+
+        .other {
+            background: white;
+            float: left;
+        }
+
+        .user {
+            font-size: 12px;
+            font-weight: bold;
+            display: block;
+        }
+
+        #form {
+            display: flex;
+            padding: 10px;
+            background: #f0f0f0;
+        }
+
+        #form input {
+            flex: 1;
+            padding: 10px;
+            border-radius: 20px;
+            border: none;
+        }
+
+        #form button {
+            margin-left: 10px;
+            padding: 10px;
+            background: #075e54;
+            color: white;
+            border: none;
+            border-radius: 20px;
+        }
+    </style>
 </head>
 <body>
 
-<h2>Chat</h2>
+<!-- LOGIN -->
+<div id="login">
+    <div id="login-box">
+        <h2>Enter Name</h2>
+        <input id="usernameInput" placeholder="Username">
+        <button onclick="startChat()">Join</button>
+    </div>
+</div>
 
-<ul id="messages"></ul>
+<!-- CHAT -->
+<div id="chat">
+    <div id="header">💬 WhatsApp Style Chat</div>
 
-<input id="messageInput" />
-<button onclick="sendMessage()">Send</button>
+    <div id="messages"></div>
+
+    <form id="form">
+        <input id="input" placeholder="Type message..." autocomplete="off">
+        <button>Send</button>
+    </form>
+</div>
 
 <script src="/socket.io/socket.io.js"></script>
-<script src="script.js"></script>
+<script>
+const socket = io();
+let username = "";
+
+function startChat() {
+    username = document.getElementById("usernameInput").value;
+    if (!username) return;
+
+    socket.emit("set username", username);
+
+    document.getElementById("login").style.display = "none";
+    document.getElementById("chat").style.display = "flex";
+}
+
+const form = document.getElementById("form");
+const input = document.getElementById("input");
+const messages = document.getElementById("messages");
+
+form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (input.value) {
+        socket.emit("chat message", input.value);
+        input.value = "";
+    }
+});
+
+function addMessage(msg) {
+    const div = document.createElement("div");
+
+    const isMe = msg.user === username;
+
+    div.classList.add("msg");
+    div.classList.add(isMe ? "me" : "other");
+
+    div.innerHTML = `<span class="user">${msg.user}</span>${msg.text}`;
+
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+}
+
+socket.on("chat message", addMessage);
+socket.on("chat history", (msgs) => msgs.forEach(addMessage));
+</script>
 
 </body>
 </html>
