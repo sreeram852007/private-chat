@@ -3,7 +3,6 @@
 <head>
 <title>Ghost 💀 Chat</title>
 
-<!-- MOBILE FIX -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
 <style>
@@ -16,6 +15,7 @@ html, body {
     font-family: Arial;
     background: #0b0f14;
     color: white;
+    position: fixed;
 }
 
 /* LOGIN */
@@ -45,7 +45,7 @@ html, body {
 /* CHAT */
 #chat {
     display: none;
-    height: 100vh;
+    height: 100dvh;
     flex-direction: column;
 }
 
@@ -67,6 +67,7 @@ html, body {
     display: flex;
     flex-direction: column;
     scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
 }
 
 /* MESSAGE */
@@ -104,6 +105,8 @@ html, body {
     padding: 8px;
     background: #111827;
     flex-shrink: 0;
+    position: sticky;
+    bottom: 0;
 }
 
 #input {
@@ -124,38 +127,12 @@ button {
     cursor: pointer;
 }
 
-/* FLOAT BUTTON */
-#scrollBtn {
-    position: fixed;
-    bottom: 85px;
-    right: 12px;
-    padding: 12px;
-    border-radius: 50%;
-    border: none;
-    background: #00ffcc;
-    color: black;
-    display: none;
-}
-
-/* MOBILE OPTIMIZATION */
+/* MOBILE */
 @media (max-width: 600px) {
-    #header {
-        font-size: 13px;
-    }
-
-    .msg {
-        max-width: 92%;
-        font-size: 13px;
-    }
-
-    button {
-        padding: 8px;
-        font-size: 12px;
-    }
-
-    #input {
-        font-size: 13px;
-    }
+    #header { font-size: 13px; }
+    .msg { max-width: 92%; font-size: 13px; }
+    button { padding: 8px; font-size: 12px; }
+    #input { font-size: 13px; }
 }
 </style>
 </head>
@@ -181,12 +158,9 @@ button {
     <div id="form">
         <input id="input" placeholder="Message...">
         <input type="file" id="file">
-
         <button onclick="sendVoice()">🎤</button>
         <button onclick="sendMessage()">➤</button>
     </div>
-
-    <button id="scrollBtn" onclick="scrollToBottom()">⬇</button>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -195,9 +169,8 @@ const socket = io();
 let username = "";
 
 const messagesDiv = document.getElementById("messages");
-const scrollBtn = document.getElementById("scrollBtn");
 
-// LOGIN
+// LOGIN (FIX ENTER KEY)
 function startChat() {
     username = document.getElementById("usernameInput").value;
     if (!username) return;
@@ -208,9 +181,20 @@ function startChat() {
     document.getElementById("chat").style.display = "flex";
 }
 
-// SCROLL
+// ENTER KEY SUPPORT
+document.getElementById("usernameInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") startChat();
+});
+
+document.getElementById("input").addEventListener("keydown", e => {
+    if (e.key === "Enter") sendMessage();
+});
+
+// SCROLL FIX
 function scrollToBottom() {
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    setTimeout(() => {
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }, 50);
 }
 
 // BASE64
@@ -222,7 +206,7 @@ function toBase64(file) {
     });
 }
 
-// SEND
+// SEND MESSAGE
 async function sendMessage() {
     const text = document.getElementById("input").value;
     const file = document.getElementById("file").files[0];
