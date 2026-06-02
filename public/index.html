@@ -9,13 +9,15 @@
 html, body {
     margin: 0;
     padding: 0;
-    height: 100%;
     width: 100%;
+    height: 100%;
     overflow: hidden;
     font-family: Arial;
     background: #0b0f14;
     color: white;
     position: fixed;
+    top: 0;
+    left: 0;
 }
 
 /* LOGIN */
@@ -47,6 +49,7 @@ html, body {
 #chat {
     display: none;
     height: 100dvh;
+    width: 100%;
     flex-direction: column;
 }
 
@@ -68,6 +71,8 @@ html, body {
     display: flex;
     flex-direction: column;
     scroll-behavior: smooth;
+
+    padding-bottom: 80px; /* IMPORTANT SPACE FOR INPUT BAR */
 }
 
 /* MESSAGE */
@@ -98,13 +103,19 @@ html, body {
     margin-bottom: 3px;
 }
 
-/* INPUT */
+/* INPUT BAR (FIXED BOTTOM) */
 #form {
     display: flex;
     gap: 5px;
     padding: 8px;
     background: #111827;
-    flex-shrink: 0;
+
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+
+    z-index: 999;
 }
 
 #input {
@@ -172,16 +183,16 @@ let username = "";
 
 const messagesDiv = document.getElementById("messages");
 
-// ---------------- AUTH ----------------
+/* ---------------- AUTH ---------------- */
 
 async function register() {
-    const username = document.getElementById("usernameInput").value;
+    const usernameInput = document.getElementById("usernameInput").value;
     const password = prompt("Create password");
 
     const res = await fetch("/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ username: usernameInput, password })
     });
 
     const data = await res.json();
@@ -202,7 +213,6 @@ async function login() {
 
     if (data.user) {
         username = data.user.username;
-
         socket.emit("set user", data.user);
         startChat();
     } else {
@@ -210,22 +220,23 @@ async function login() {
     }
 }
 
-// ---------------- CHAT START ----------------
 function startChat() {
     document.getElementById("login").style.display = "none";
     document.getElementById("chat").style.display = "flex";
 }
 
-// ENTER KEY SUPPORT
-document.getElementById("usernameInput").addEventListener("keydown", e => {
-    if (e.key === "Enter") login();
-});
+/* ---------------- ENTER KEY FIX ---------------- */
 
 document.getElementById("input").addEventListener("keydown", e => {
     if (e.key === "Enter") sendMessage();
 });
 
-// ---------------- SEND ----------------
+document.getElementById("usernameInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") login();
+});
+
+/* ---------------- BASE64 ---------------- */
+
 function toBase64(file) {
     return new Promise(resolve => {
         const reader = new FileReader();
@@ -233,6 +244,8 @@ function toBase64(file) {
         reader.readAsDataURL(file);
     });
 }
+
+/* ---------------- SEND MESSAGE ---------------- */
 
 async function sendMessage() {
     const text = document.getElementById("input").value;
@@ -251,7 +264,8 @@ async function sendMessage() {
     document.getElementById("file").value = "";
 }
 
-// ---------------- VOICE ----------------
+/* ---------------- VOICE ---------------- */
+
 async function sendVoice() {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const recorder = new MediaRecorder(stream);
@@ -278,7 +292,8 @@ async function sendVoice() {
     setTimeout(() => recorder.stop(), 4000);
 }
 
-// ---------------- RECEIVE ----------------
+/* ---------------- RECEIVE ---------------- */
+
 socket.on("chat message", (msg) => {
 
     const div = document.createElement("div");
