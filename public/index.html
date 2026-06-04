@@ -445,56 +445,92 @@ async function register() {
 
 /* ================= LOGIN ================= */
 
+let loginInProgress = false;
+
 async function login() {
 
-    const usernameInput =
-        document.getElementById(
-            "usernameInput"
-        ).value.trim();
-
-    const password =
-        prompt("Enter password");
-
-    if (!password) return;
-
-    const res =
-        await fetch("/login", {
-            method: "POST",
-            headers: {
-                "Content-Type":
-                    "application/json"
-            },
-            body: JSON.stringify({
-                username: usernameInput,
-                password
-            })
-        });
-
-    const data =
-        await res.json();
-
-    if (!data.user) {
-
-        alert(
-            data.error ||
-            "Login failed"
-        );
-
+    if (loginInProgress) {
         return;
     }
 
-    username =
-        data.user.username;
+    loginInProgress = true;
 
-    token =
-        data.token;
+    try {
 
-    socket.emit(
-        "set user",
-        token
-    );
+        const usernameInput =
+            document.getElementById(
+                "usernameInput"
+            ).value.trim();
 
-    startChat();
+        if (!usernameInput) {
+
+            alert("Enter username");
+
+            loginInProgress = false;
+            return;
+        }
+
+        const password =
+            prompt("Enter password");
+
+        if (!password) {
+
+            loginInProgress = false;
+            return;
+        }
+
+        const res =
+            await fetch("/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
+                body: JSON.stringify({
+                    username: usernameInput,
+                    password
+                })
+            });
+
+        const data =
+            await res.json();
+
+        if (!data.user) {
+
+            alert(
+                data.error ||
+                "Login failed"
+            );
+
+            loginInProgress = false;
+            return;
+        }
+
+        username =
+            data.user.username;
+
+        token =
+            data.token;
+
+        socket.emit(
+            "set user",
+            token
+        );
+
+        startChat();
+
+    } catch (err) {
+
+        console.error(err);
+
+        alert(
+            "Login failed"
+        );
+
+    } finally {
+
+        loginInProgress = false;
+    }
 }
 
 /* ================= USERS ================= */
