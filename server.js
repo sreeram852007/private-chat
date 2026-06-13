@@ -338,6 +338,6 @@ const PORT =
 server.listen(PORT, () => {
 
     console.log(
-        `Ghost Pro running on port ${PORT}`
+        `Commit Chat running on port ${PORT}`
     );
 });
