@@ -21,7 +21,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "ghost_secret_key_123";
 const onlineUsers = {};
 const userStatus = {};
 
-// ADMIN USER - Can see and chat with everyone
+// ADMIN USER - Can see and chat with everyone (SEND only)
 const ADMIN_USERS = ["Sreeram", "sreeram"];
 
 /* ================= MIDDLEWARE ================= */
@@ -35,16 +35,26 @@ mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log("MongoDB connected"))
     .catch(err => console.log(err));
 
-// Helper: Check if user can chat with target
-const canChat = async (username, targetUsername) => {
-    // Admin can chat with anyone
-    if (ADMIN_USERS.includes(username) || ADMIN_USERS.includes(targetUsername)) {
+// Helper: Check if user can SEND message to target
+const canSendMessage = async (sender, receiver) => {
+    // Admin can send to anyone
+    if (ADMIN_USERS.includes(sender)) {
         return true;
     }
-    
-    // Check if they are friends
-    const user = await User.findOne({ username });
-    return user && user.friends.includes(targetUsername);
+    // Normal users can ONLY send to friends
+    const user = await User.findOne({ username: sender });
+    return user && user.friends.includes(receiver);
+};
+
+// Helper: Check if user can VIEW messages with target
+const canViewMessages = async (user1, user2) => {
+    // Admin can view anyone's messages
+    if (ADMIN_USERS.includes(user1) || ADMIN_USERS.includes(user2)) {
+        return true;
+    }
+    // Normal users can only view messages with friends
+    const user = await User.findOne({ username: user1 });
+    return user && user.friends.includes(user2);
 };
 
 // Helper: Get visible users for a user
@@ -58,9 +68,8 @@ const getVisibleUsers = async (username) => {
         return allUsers.map(u => u.username).filter(u => u !== username);
     }
     
-    // Normal user sees only friends + admin
-    const visible = [...user.friends, ...ADMIN_USERS];
-    return [...new Set(visible)].filter(u => u !== username);
+    // Normal user sees only friends
+    return user.friends || [];
 };
 
 /* ================= AUTH ================= */
@@ -273,7 +282,7 @@ app.get("/friends/:username", async (req, res) => {
     }
 });
 
-// Get visible users (friends + admin for normal users, all for admin)
+// Get visible users (friends for normal users, all for admin)
 app.get("/visible-users/:username", async (req, res) => {
     try {
         const { username } = req.params;
@@ -321,11 +330,10 @@ app.get("/messages/:user1/:user2", async (req, res) => {
     try {
         const { user1, user2 } = req.params;
         
-        // Check if users can chat
-        const canChat1 = await canChat(user1, user2);
-        const canChat2 = await canChat(user2, user1);
+        // Check if users can view messages
+        const canView = await canViewMessages(user1, user2);
         
-        if (!canChat1 && !canChat2) {
+        if (!canView) {
             return res.json({ error: "Not authorized to view these messages", messages: [] });
         }
 
@@ -422,9 +430,10 @@ io.on("connection", socket => {
 
     socket.on("private message", async msg => {
         try {
-            // Check if users can chat
-            const canChatWithReceiver = await canChat(socket.username, msg.receiver);
-            if (!canChatWithReceiver) {
+            // Check if sender can send to this receiver
+            const canSend = await canSendMessage(socket.username, msg.receiver);
+            
+            if (!canSend) {
                 socket.emit("error", "You can only message your friends");
                 return;
             }
@@ -444,7 +453,10 @@ io.on("connection", socket => {
                 edited: false
             });
 
+            // Always send to sender
             socket.emit("private message", saved);
+            
+            // Send to receiver if they are online (they can receive even if they can't reply)
             if (receiverSocket) {
                 io.to(receiverSocket).emit("private message", saved);
             }
@@ -552,5 +564,6 @@ const PORT = process.env.PORT || 3000;
 
 server.listen(PORT, () => {
     console.log(`Commit Chat running on port ${PORT}`);
-    console.log(`👑 Admin: ${ADMIN_USERS.join(", ")}`);
+    console.log(`👑 Admin (can message anyone): ${ADMIN_USERS.join(", ")}`);
+    console.log(`🔒 Normal users can only message friends`);
 });
