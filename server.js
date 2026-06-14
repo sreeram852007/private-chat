@@ -118,6 +118,114 @@ app.post("/login", async (req, res) => {
     }
 });
 
+/* ================= PASSWORD RESET ================= */
+
+// Step 1: Request password reset (generate token)
+app.post("/forgot-password", async (req, res) => {
+    try {
+        const { username } = req.body;
+        
+        const user = await User.findOne({ username });
+        if (!user) {
+            return res.json({ error: "User not found" });
+        }
+        
+        // Generate reset token (expires in 1 hour)
+        const resetToken = jwt.sign(
+            { 
+                id: user._id, 
+                username: user.username,
+                type: "reset"
+            },
+            JWT_SECRET,
+            { expiresIn: "1h" }
+        );
+        
+        res.json({ 
+            success: true,
+            message: "Reset token generated",
+            resetToken: resetToken 
+        });
+        
+    } catch (err) {
+        console.log(err);
+        res.json({ error: "Failed to generate reset token" });
+    }
+});
+
+// Step 2: Verify token and reset password
+app.post("/reset-password", async (req, res) => {
+    try {
+        const { token, newPassword, username } = req.body;
+        
+        // Verify token
+        const decoded = jwt.verify(token, JWT_SECRET);
+        
+        if (decoded.username !== username) {
+            return res.json({ error: "Invalid token for this user" });
+        }
+        
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        
+        // Update password
+        await User.updateOne(
+            { username: username },
+            { $set: { password: hashedPassword } }
+        );
+        
+        res.json({ 
+            success: true,
+            message: "Password reset successful! You can now login with your new password."
+        });
+        
+    } catch (err) {
+        console.log(err);
+        
+        if (err.name === "TokenExpiredError") {
+            res.json({ error: "Reset token has expired. Please request a new one." });
+        } else if (err.name === "JsonWebTokenError") {
+            res.json({ error: "Invalid reset token. Please request a new one." });
+        } else {
+            res.json({ error: "Failed to reset password" });
+        }
+    }
+});
+
+// Step 3: Direct password update (for logged-in users)
+app.post("/change-password", async (req, res) => {
+    try {
+        const { username, currentPassword, newPassword } = req.body;
+        
+        const user = await User.findOne({ username });
+        if (!user) {
+            return res.json({ error: "User not found" });
+        }
+        
+        // Verify current password
+        const isValid = await bcrypt.compare(currentPassword, user.password);
+        if (!isValid) {
+            return res.json({ error: "Current password is incorrect" });
+        }
+        
+        // Hash and update new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await User.updateOne(
+            { username: username },
+            { $set: { password: hashedPassword } }
+        );
+        
+        res.json({ 
+            success: true,
+            message: "Password changed successfully!"
+        });
+        
+    } catch (err) {
+        console.log(err);
+        res.json({ error: "Failed to change password" });
+    }
+});
+
 /* ================= USERS API ================= */
 
 app.get("/users", async (req, res) => {
