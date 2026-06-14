@@ -593,28 +593,62 @@ function switchTab(tab) {
 // ================= FRIEND SYSTEM =================
 
 async function loadFriends() {
-    const res = await fetch(`/friends/${username}`);
-    const data = await res.json();
-    friendsList = data.friends || [];
+    // Check if user is admin (Sreeram)
+    const isAdmin = verifiedUsers.includes(username);
+    
+    let usersToShow = [];
+    
+    if (isAdmin) {
+        // Admin sees ALL users except themselves
+        try {
+            const allUsersRes = await fetch("/users");
+            const allUsers = await allUsersRes.json();
+            usersToShow = allUsers.map(u => u.username).filter(u => u !== username);
+            console.log("Admin mode - showing all users:", usersToShow);
+        } catch (err) {
+            console.error("Failed to load users:", err);
+        }
+    } else {
+        // Normal users see only friends
+        try {
+            const friendsRes = await fetch(`/friends/${username}`);
+            const friendsData = await friendsRes.json();
+            usersToShow = friendsData.friends || [];
+            friendsList = usersToShow;
+        } catch (err) {
+            console.error("Failed to load friends:", err);
+        }
+    }
     
     const container = document.getElementById("friendsList");
-    container.innerHTML = friendsList.length === 0 ? '<div style="padding:20px; text-align:center; color:#6b7280;">No friends yet. Add some!</div>' : '';
     
-    for (const friend of friendsList) {
-        const online = onlineUsers.includes(friend);
-        const isVerified = verifiedUsers.includes(friend);
+    if (!container) return;
+    
+    if (usersToShow.length === 0) {
+        container.innerHTML = '<div style="padding:20px; text-align:center; color:#6b7280;">' + 
+            (isAdmin ? '📭 No other users found.' : '👥 No friends yet. Use "Add Friend" tab to find friends!') + '</div>';
+        return;
+    }
+    
+    container.innerHTML = "";
+    
+    for (const user of usersToShow) {
+        const online = onlineUsers.includes(user);
+        const isVerified = verifiedUsers.includes(user);
+        
         const div = document.createElement("div");
         div.className = "user-item";
         div.innerHTML = `
             <div class="user-name-wrapper">
-                <div class="user-name">${friend}</div>
-                ${isVerified ? '<span class="verified-badge"></span>' : ''}
+                <div class="user-name">${user}</div>
+                ${isVerified ? '<span class="verified-badge" title="Verified User"></span>' : ''}
+                ${isAdmin ? '<span style="font-size:10px; margin-left:6px; color:#fbbf24;">👑</span>' : ''}
             </div>
             <div class="user-status ${online ? 'user-online' : 'user-offline'}">
                 ${online ? 'online' : 'offline'}
             </div>
         `;
-        div.onclick = () => openChat(friend);
+        div.onclick = () => openChat(user);
         container.appendChild(div);
     }
 }
