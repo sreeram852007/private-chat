@@ -394,6 +394,7 @@ html, body {
     flex: 1;
     overflow-y: auto;
     padding: 20px;
+    padding-bottom: 80px;  /* Add this - space for input box */
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -442,6 +443,8 @@ html, body {
     bottom: 0;
     left: 320px;
     right: 0;
+    z-index: 100;  /* Add this */
+    background: var(--bg-secondary);  /* Ensure background is solid */
 }
 
 #input {
@@ -476,9 +479,13 @@ html, body {
     }
     #form {
         left: 0;
+        z-index: 100;
     }
     .msg {
         max-width: 85%;
+    }
+    #messages {
+        padding-bottom: 80px;
     }
     .jump-to-bottom {
         bottom: 70px;
