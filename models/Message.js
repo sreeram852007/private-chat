@@ -21,6 +21,10 @@ const MessageSchema = new mongoose.Schema({
         type: String,
         default: ""
     },
+    voiceDuration: {
+        type: Number,
+        default: 0
+    },
     type: {
         type: String,
         enum: ["text", "file", "voice", "image"],

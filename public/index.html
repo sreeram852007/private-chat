@@ -115,6 +115,120 @@ html, body {
     background: var(--accent-secondary);
 }
 
+/* Voice Recording Styles */
+.recording-indicator {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent-danger);
+    color: white;
+    padding: 8px 20px;
+    border-radius: 50px;
+    display: none;
+    align-items: center;
+    gap: 10px;
+    z-index: 1000;
+    font-size: 14px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    animation: pulse 1s ease-in-out infinite;
+}
+
+.recording-timer {
+    font-family: monospace;
+    font-weight: bold;
+}
+
+.recording-wave {
+    display: flex;
+    gap: 3px;
+    align-items: center;
+}
+
+.recording-wave span {
+    width: 4px;
+    height: 20px;
+    background: white;
+    border-radius: 2px;
+    animation: wave 0.5s ease-in-out infinite;
+}
+
+.recording-wave span:nth-child(1) { animation-delay: 0s; height: 10px; }
+.recording-wave span:nth-child(2) { animation-delay: 0.1s; height: 20px; }
+.recording-wave span:nth-child(3) { animation-delay: 0.2s; height: 15px; }
+.recording-wave span:nth-child(4) { animation-delay: 0.3s; height: 25px; }
+.recording-wave span:nth-child(5) { animation-delay: 0.4s; height: 12px; }
+
+@keyframes wave {
+    0%, 100% { height: 10px; }
+    50% { height: 25px; }
+}
+
+.cancel-recording {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.cancel-recording:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+/* Voice Message Player */
+.voice-message {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg-tertiary);
+    padding: 8px 12px;
+    border-radius: 20px;
+    max-width: 250px;
+}
+
+.voice-play-btn {
+    background: var(--accent-primary);
+    border: none;
+    color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+}
+
+.voice-play-btn:hover {
+    transform: scale(1.05);
+}
+
+.voice-timeline {
+    flex: 1;
+    height: 4px;
+    background: var(--border-color);
+    border-radius: 2px;
+    cursor: pointer;
+    position: relative;
+}
+
+.voice-progress {
+    height: 100%;
+    background: var(--accent-primary);
+    border-radius: 2px;
+    width: 0%;
+}
+
+.voice-duration {
+    font-size: 10px;
+    color: var(--text-secondary);
+    min-width: 35px;
+}
+
 /* Friend Request Button */
 .request-btn {
     background: var(--accent-primary);
@@ -394,7 +508,7 @@ html, body {
     flex: 1;
     overflow-y: auto;
     padding: 20px;
-    padding-bottom: 80px;  /* Add this - space for input box */
+    padding-bottom: 80px;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -443,8 +557,7 @@ html, body {
     bottom: 0;
     left: 320px;
     right: 0;
-    z-index: 100;  /* Add this */
-    background: var(--bg-secondary);  /* Ensure background is solid */
+    z-index: 100;
 }
 
 #input {
@@ -491,6 +604,9 @@ html, body {
         bottom: 70px;
         right: 20px;
     }
+    .recording-indicator {
+        bottom: 80px;
+    }
 }
 </style>
 </head>
@@ -525,6 +641,16 @@ html, body {
         <button onclick="closeResetModal()" style="width:100%; padding:8px; margin-top:10px; background:#374151; border:none; border-radius:8px; color:white;">Cancel</button>
         <div id="resetMessage" style="margin-top:15px; font-size:12px; text-align:center;"></div>
     </div>
+</div>
+
+<!-- Recording Indicator -->
+<div id="recordingIndicator" class="recording-indicator">
+    <div class="recording-wave">
+        <span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <span>Recording...</span>
+    <span id="recordingTimer" class="recording-timer">0:00</span>
+    <button class="cancel-recording" onclick="cancelRecording()">Cancel</button>
 </div>
 
 <!-- CHAT -->
@@ -602,6 +728,14 @@ let friendRequests = [];
 let verifiedUsers = ["Sreeram", "sreeram"];
 let currentResetToken = null;
 let resetUsername = null;
+
+// ================= VOICE RECORDING VARIABLES =================
+let mediaRecorder = null;
+let audioChunks = [];
+let recordingTimer = null;
+let recordingSeconds = 0;
+let isRecording = false;
+let audioStream = null;
 
 // ================= AUTO-SCROLL VARIABLES =================
 let isUserScrolling = false;
@@ -906,21 +1040,109 @@ async function openChat(user) {
     }, 100);
 }
 
+function formatDuration(seconds) {
+    if (!seconds || isNaN(seconds)) return "0:00";
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+function createVoicePlayer(base64Audio, duration) {
+    const container = document.createElement("div");
+    container.className = "voice-message";
+    
+    const audio = new Audio(`data:audio/webm;base64,${base64Audio}`);
+    let isPlaying = false;
+    let progressInterval = null;
+    
+    const playBtn = document.createElement("button");
+    playBtn.className = "voice-play-btn";
+    playBtn.innerHTML = "▶";
+    playBtn.onclick = () => {
+        if (isPlaying) {
+            audio.pause();
+            playBtn.innerHTML = "▶";
+            isPlaying = false;
+            if (progressInterval) clearInterval(progressInterval);
+        } else {
+            audio.play();
+            playBtn.innerHTML = "⏸";
+            isPlaying = true;
+            
+            const progressBar = container.querySelector(".voice-progress");
+            progressInterval = setInterval(() => {
+                if (audio.currentTime && audio.duration) {
+                    const percent = (audio.currentTime / audio.duration) * 100;
+                    progressBar.style.width = `${percent}%`;
+                }
+            }, 100);
+        }
+    };
+    
+    audio.onended = () => {
+        playBtn.innerHTML = "▶";
+        isPlaying = false;
+        if (progressInterval) clearInterval(progressInterval);
+        const progressBar = container.querySelector(".voice-progress");
+        if (progressBar) progressBar.style.width = "0%";
+    };
+    
+    const timeline = document.createElement("div");
+    timeline.className = "voice-timeline";
+    timeline.onclick = (e) => {
+        const rect = timeline.getBoundingClientRect();
+        const percent = (e.clientX - rect.left) / rect.width;
+        audio.currentTime = percent * audio.duration;
+    };
+    
+    const progress = document.createElement("div");
+    progress.className = "voice-progress";
+    timeline.appendChild(progress);
+    
+    const durationDisplay = document.createElement("span");
+    durationDisplay.className = "voice-duration";
+    durationDisplay.textContent = formatDuration(duration || audio.duration);
+    
+    container.appendChild(playBtn);
+    container.appendChild(timeline);
+    container.appendChild(durationDisplay);
+    
+    return container;
+}
+
 function renderMessage(msg) {
     const wrapper = document.createElement("div");
     wrapper.className = "message-wrapper";
     const isMe = msg.sender === username;
     wrapper.classList.add(isMe ? "me" : "other");
     
-    const isVerifiedSender = verifiedUsers.includes(msg.sender);
-    let html = `<div class="msg"><span class="user">${msg.sender}${isVerifiedSender ? ' <span class="verified-badge"></span>' : ''}</span>`;
+    const msgDiv = document.createElement("div");
+    msgDiv.className = "msg";
     
-    if (msg.type === "text") html += msg.text || "";
-    else if (msg.type === "file") html += `<a href="data:application/octet-stream;base64,${msg.file}" download>📎 Download File</a>`;
-    else if (msg.type === "voice") html += `<audio controls src="data:audio/webm;base64,${msg.voice}"></audio>`;
+    const userSpan = document.createElement("span");
+    userSpan.className = "user";
+    userSpan.innerHTML = `${msg.sender}${verifiedUsers.includes(msg.sender) ? ' <span class="verified-badge"></span>' : ''}`;
+    msgDiv.appendChild(userSpan);
     
-    html += `<div class="message-time">${new Date().toLocaleTimeString()}</div></div>`;
-    wrapper.innerHTML = html;
+    if (msg.type === "text") {
+        msgDiv.appendChild(document.createTextNode(msg.text || ""));
+    } else if (msg.type === "file") {
+        const fileLink = document.createElement("a");
+        fileLink.href = `data:application/octet-stream;base64,${msg.file}`;
+        fileLink.download = msg.fileName || "download";
+        fileLink.innerHTML = "📎 Download File";
+        msgDiv.appendChild(fileLink);
+    } else if (msg.type === "voice") {
+        const voicePlayer = createVoicePlayer(msg.voice, msg.voiceDuration);
+        msgDiv.appendChild(voicePlayer);
+    }
+    
+    const timeSpan = document.createElement("div");
+    timeSpan.className = "message-time";
+    timeSpan.textContent = new Date().toLocaleTimeString();
+    msgDiv.appendChild(timeSpan);
+    
+    wrapper.appendChild(msgDiv);
     document.getElementById("messages").appendChild(wrapper);
     autoScrollIfNeeded();
 }
@@ -934,22 +1156,126 @@ async function sendMessage() {
     document.getElementById("input").value = "";
 }
 
+// ================= ENHANCED VOICE RECORDING =================
+
 async function sendVoice() {
-    if (!selectedUser) { alert("Select a user first"); return; }
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const recorder = new MediaRecorder(stream);
-    let chunks = [];
-    recorder.ondataavailable = e => chunks.push(e.data);
-    recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: "audio/webm" });
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            socket.emit("private message", { receiver: selectedUser, type: "voice", voice: reader.result.split(",")[1] });
+    if (!selectedUser) {
+        alert("Select a user first");
+        return;
+    }
+    
+    if (isRecording) {
+        stopRecordingAndSend();
+        return;
+    }
+    
+    startRecording();
+}
+
+function startRecording() {
+    navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+            audioStream = stream;
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+            
+            mediaRecorder.ondataavailable = event => {
+                audioChunks.push(event.data);
+            };
+            
+            mediaRecorder.onstop = () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                sendVoiceMessage(audioBlob);
+                stopTimer();
+                document.getElementById("recordingIndicator").style.display = "none";
+                isRecording = false;
+                
+                if (audioStream) {
+                    audioStream.getTracks().forEach(track => track.stop());
+                }
+            };
+            
+            mediaRecorder.start();
+            isRecording = true;
+            startTimer();
+            
+            const indicator = document.getElementById("recordingIndicator");
+            indicator.style.display = "flex";
+            
+            setTimeout(() => {
+                if (isRecording) {
+                    stopRecordingAndSend();
+                }
+            }, 30000);
+        })
+        .catch(err => {
+            console.error("Microphone error:", err);
+            alert("Could not access microphone. Please check permissions.");
+        });
+}
+
+function stopRecordingAndSend() {
+    if (mediaRecorder && isRecording) {
+        mediaRecorder.stop();
+        stopTimer();
+        document.getElementById("recordingIndicator").style.display = "none";
+        isRecording = false;
+    }
+}
+
+function cancelRecording() {
+    if (mediaRecorder && isRecording) {
+        mediaRecorder.onstop = () => {
+            if (audioStream) {
+                audioStream.getTracks().forEach(track => track.stop());
+            }
+            document.getElementById("recordingIndicator").style.display = "none";
+            isRecording = false;
         };
-        reader.readAsDataURL(blob);
+        mediaRecorder.stop();
+        stopTimer();
+    }
+}
+
+function startTimer() {
+    recordingSeconds = 0;
+    updateTimerDisplay();
+    recordingTimer = setInterval(() => {
+        recordingSeconds++;
+        updateTimerDisplay();
+    }, 1000);
+}
+
+function stopTimer() {
+    if (recordingTimer) {
+        clearInterval(recordingTimer);
+        recordingTimer = null;
+    }
+}
+
+function updateTimerDisplay() {
+    const minutes = Math.floor(recordingSeconds / 60);
+    const seconds = recordingSeconds % 60;
+    const timerElement = document.getElementById("recordingTimer");
+    if (timerElement) {
+        timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+}
+
+function sendVoiceMessage(audioBlob) {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+        const base64Audio = reader.result.split(",")[1];
+        const duration = recordingSeconds;
+        
+        socket.emit("private message", {
+            receiver: selectedUser,
+            type: "voice",
+            voice: base64Audio,
+            voiceDuration: duration
+        });
     };
-    recorder.start();
-    setTimeout(() => recorder.stop(), 4000);
+    reader.readAsDataURL(audioBlob);
 }
 
 function toBase64(file) {
