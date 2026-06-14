@@ -3,12 +3,12 @@ require("dotenv").config();
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
-const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 const Message = require("./models/Message");
 const User = require("./models/User");
+const { ADMIN_USERS, canSendMessage, canViewMessages, getVisibleUsers, connectDB } = require("./config/database");
 
 const app = express();
 const server = http.createServer(app);
@@ -21,9 +21,6 @@ const JWT_SECRET = process.env.JWT_SECRET || "ghost_secret_key_123";
 const onlineUsers = {};
 const userStatus = {};
 
-// ADMIN USER - Can see and chat with everyone (SEND only)
-const ADMIN_USERS = ["Sreeram", "sreeram"];
-
 /* ================= MIDDLEWARE ================= */
 
 app.use(express.json({ limit: "20mb" }));
@@ -31,46 +28,7 @@ app.use(express.static("public"));
 
 /* ================= DATABASE ================= */
 
-mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log("MongoDB connected"))
-    .catch(err => console.log(err));
-
-// Helper: Check if user can SEND message to target
-const canSendMessage = async (sender, receiver) => {
-    // Admin can send to anyone
-    if (ADMIN_USERS.includes(sender)) {
-        return true;
-    }
-    // Normal users can ONLY send to friends
-    const user = await User.findOne({ username: sender });
-    return user && user.friends.includes(receiver);
-};
-
-// Helper: Check if user can VIEW messages with target
-const canViewMessages = async (user1, user2) => {
-    // Admin can view anyone's messages
-    if (ADMIN_USERS.includes(user1) || ADMIN_USERS.includes(user2)) {
-        return true;
-    }
-    // Normal users can only view messages with friends
-    const user = await User.findOne({ username: user1 });
-    return user && user.friends.includes(user2);
-};
-
-// Helper: Get visible users for a user
-const getVisibleUsers = async (username) => {
-    const user = await User.findOne({ username });
-    if (!user) return [];
-    
-    // Admin sees all users
-    if (ADMIN_USERS.includes(username)) {
-        const allUsers = await User.find({}, { username: 1, _id: 0 });
-        return allUsers.map(u => u.username).filter(u => u !== username);
-    }
-    
-    // Normal user sees only friends
-    return user.friends || [];
-};
+connectDB();
 
 /* ================= AUTH ================= */
 
@@ -149,7 +107,6 @@ app.post("/login", async (req, res) => {
 
 /* ================= FRIEND SYSTEM API ================= */
 
-// Send friend request
 app.post("/send-friend-request", async (req, res) => {
     try {
         const { from, to } = req.body;
@@ -165,29 +122,24 @@ app.post("/send-friend-request", async (req, res) => {
         
         const sender = await User.findOne({ username: from });
         
-        // Check if already friends
         if (sender.friends.includes(to)) {
             return res.json({ error: "Already friends with this user" });
         }
         
-        // Check if request already sent
         if (targetUser.friendRequests.includes(from)) {
             return res.json({ error: "Friend request already sent" });
         }
         
-        // Add to target's friendRequests
         await User.updateOne(
             { username: to },
             { $addToSet: { friendRequests: from } }
         );
         
-        // Add to sender's sentRequests
         await User.updateOne(
             { username: from },
             { $addToSet: { sentRequests: to } }
         );
         
-        // Notify if online
         const targetSocket = onlineUsers[to];
         if (targetSocket) {
             io.to(targetSocket).emit("friend-request-received", { from });
@@ -201,12 +153,10 @@ app.post("/send-friend-request", async (req, res) => {
     }
 });
 
-// Accept friend request
 app.post("/accept-friend-request", async (req, res) => {
     try {
         const { username, requester } = req.body;
         
-        // Add to friends lists
         await User.updateOne(
             { username: username },
             { 
@@ -223,7 +173,6 @@ app.post("/accept-friend-request", async (req, res) => {
             }
         );
         
-        // Notify both users
         const requesterSocket = onlineUsers[requester];
         if (requesterSocket) {
             io.to(requesterSocket).emit("friend-request-accepted", { by: username });
@@ -237,7 +186,6 @@ app.post("/accept-friend-request", async (req, res) => {
     }
 });
 
-// Reject/Decline friend request
 app.post("/reject-friend-request", async (req, res) => {
     try {
         const { username, requester } = req.body;
@@ -260,7 +208,6 @@ app.post("/reject-friend-request", async (req, res) => {
     }
 });
 
-// Get friend requests
 app.get("/friend-requests/:username", async (req, res) => {
     try {
         const { username } = req.params;
@@ -271,7 +218,6 @@ app.get("/friend-requests/:username", async (req, res) => {
     }
 });
 
-// Get friends list
 app.get("/friends/:username", async (req, res) => {
     try {
         const { username } = req.params;
@@ -282,7 +228,6 @@ app.get("/friends/:username", async (req, res) => {
     }
 });
 
-// Get visible users (friends for normal users, all for admin)
 app.get("/visible-users/:username", async (req, res) => {
     try {
         const { username } = req.params;
@@ -304,7 +249,6 @@ app.get("/users", async (req, res) => {
     }
 });
 
-// Search users (for adding friends)
 app.get("/search-users/:query", async (req, res) => {
     try {
         const { query } = req.params;
@@ -330,7 +274,6 @@ app.get("/messages/:user1/:user2", async (req, res) => {
     try {
         const { user1, user2 } = req.params;
         
-        // Check if users can view messages
         const canView = await canViewMessages(user1, user2);
         
         if (!canView) {
@@ -430,7 +373,6 @@ io.on("connection", socket => {
 
     socket.on("private message", async msg => {
         try {
-            // Check if sender can send to this receiver
             const canSend = await canSendMessage(socket.username, msg.receiver);
             
             if (!canSend) {
@@ -449,14 +391,12 @@ io.on("connection", socket => {
                 type: msg.type || "text",
                 fileType: msg.fileType || "",
                 fileName: msg.fileName || "",
+                voiceDuration: msg.voiceDuration || 0,
                 reactions: {},
                 edited: false
             });
 
-            // Always send to sender
             socket.emit("private message", saved);
-            
-            // Send to receiver if they are online (they can receive even if they can't reply)
             if (receiverSocket) {
                 io.to(receiverSocket).emit("private message", saved);
             }
