@@ -24,6 +24,7 @@ const JWT_SECRET =
     "ghost_secret_key_123";
 
 const onlineUsers = {};
+const userStatus = {}; // Store custom status for users
 
 /* ================= MIDDLEWARE ================= */
 
@@ -41,21 +42,15 @@ mongoose.connect(process.env.MONGO_URI)
 // REGISTER
 app.post("/register", async (req, res) => {
     try {
-
         const { username, password } = req.body;
 
-        const exists = await User.findOne({
-            username
-        });
+        const exists = await User.findOne({ username });
 
         if (exists) {
-            return res.json({
-                error: "User already exists"
-            });
+            return res.json({ error: "User already exists" });
         }
 
-        const hashed =
-            await bcrypt.hash(password, 10);
+        const hashed = await bcrypt.hash(password, 10);
 
         const user = await User.create({
             username,
@@ -80,39 +75,25 @@ app.post("/register", async (req, res) => {
 
     } catch (err) {
         console.log(err);
-
-        res.json({
-            error: "Register failed"
-        });
+        res.json({ error: "Register failed" });
     }
 });
 
 // LOGIN
 app.post("/login", async (req, res) => {
-
     try {
-
         const { username, password } = req.body;
 
-        const user =
-            await User.findOne({ username });
+        const user = await User.findOne({ username });
 
         if (!user) {
-            return res.json({
-                error: "User not found"
-            });
+            return res.json({ error: "User not found" });
         }
 
-        const match =
-            await bcrypt.compare(
-                password,
-                user.password
-            );
+        const match = await bcrypt.compare(password, user.password);
 
         if (!match) {
-            return res.json({
-                error: "Wrong password"
-            });
+            return res.json({ error: "Wrong password" });
         }
 
         const token = jwt.sign(
@@ -132,21 +113,15 @@ app.post("/login", async (req, res) => {
         });
 
     } catch (err) {
-
         console.log(err);
-
-        res.json({
-            error: "Login failed"
-        });
+        res.json({ error: "Login failed" });
     }
 });
 
 /* ================= USERS API ================= */
 
 app.get("/users", async (req, res) => {
-
     try {
-
         const users = await User.find(
             {},
             {
@@ -154,190 +129,216 @@ app.get("/users", async (req, res) => {
                 _id: 0
             }
         );
-
         res.json(users);
-
     } catch (err) {
-
         res.json([]);
     }
 });
 
 /* ================= CHAT HISTORY ================= */
 
-app.get(
-    "/messages/:user1/:user2",
-    async (req, res) => {
+app.get("/messages/:user1/:user2", async (req, res) => {
+    try {
+        const { user1, user2 } = req.params;
 
-        try {
+        const messages = await Message.find({
+            $or: [
+                { sender: user1, receiver: user2 },
+                { sender: user2, receiver: user1 }
+            ]
+        }).sort({ createdAt: 1 });
 
-            const { user1, user2 } =
-                req.params;
-
-            const messages =
-                await Message.find({
-                    $or: [
-                        {
-                            sender: user1,
-                            receiver: user2
-                        },
-                        {
-                            sender: user2,
-                            receiver: user1
-                        }
-                    ]
-                })
-                    .sort({
-                        createdAt: 1
-                    });
-
-            res.json(messages);
-
-        } catch (err) {
-
-            console.log(err);
-
-            res.json([]);
-        }
+        res.json(messages);
+    } catch (err) {
+        console.log(err);
+        res.json([]);
     }
-);
+});
 
 /* ================= SOCKET ================= */
 
 io.on("connection", socket => {
-
     console.log("Connected:", socket.id);
 
     socket.on("set user", token => {
-
         try {
-
-            const decoded =
-                jwt.verify(
-                    token,
-                    JWT_SECRET
-                );
-
-            socket.username =
-                decoded.username;
-
-            onlineUsers[
-                decoded.username
-            ] = socket.id;
-
-            io.emit(
-                "online users",
-                Object.keys(onlineUsers)
-            );
-
-            console.log(
-                decoded.username,
-                "online"
-            );
-
+            const decoded = jwt.verify(token, JWT_SECRET);
+            socket.username = decoded.username;
+            onlineUsers[decoded.username] = socket.id;
+            
+            // Send current status to others
+            if (userStatus[decoded.username]) {
+                io.emit("user status", { 
+                    username: decoded.username, 
+                    status: userStatus[decoded.username] 
+                });
+            }
+            
+            io.emit("online users", Object.keys(onlineUsers));
+            console.log(decoded.username, "online");
         } catch (err) {
-
-            console.log(
-                "JWT verify failed"
-            );
+            console.log("JWT verify failed");
         }
     });
 
-    socket.on(
-        "private message",
-        async msg => {
+    // Private message with enhanced fields
+    socket.on("private message", async msg => {
+        try {
+            const receiverSocket = onlineUsers[msg.receiver];
 
-            try {
+            const saved = await Message.create({
+                sender: socket.username,
+                receiver: msg.receiver,
+                text: msg.text || "",
+                file: msg.file || "",
+                voice: msg.voice || "",
+                type: msg.type || "text",
+                fileType: msg.fileType || "",
+                fileName: msg.fileName || "",
+                reactions: {},
+                edited: false
+            });
 
-                const receiverSocket =
-                    onlineUsers[
-                        msg.receiver
-                    ];
+            socket.emit("private message", saved);
+            if (receiverSocket) {
+                io.to(receiverSocket).emit("private message", saved);
+            }
+        } catch (err) {
+            console.log("Private message error:", err);
+        }
+    });
 
-                const saved =
-                    await Message.create({
-                        sender:
-                            socket.username,
+    // Typing indicator
+    socket.on("typing", ({ receiver, isTyping }) => {
+        const receiverSocket = onlineUsers[receiver];
+        if (receiverSocket) {
+            io.to(receiverSocket).emit("user typing", { 
+                sender: socket.username, 
+                isTyping 
+            });
+        }
+    });
 
-                        receiver:
-                            msg.receiver,
+    // User status update
+    socket.on("user status", ({ username, status }) => {
+        userStatus[username] = status;
+        io.emit("user status", { username, status });
+    });
 
-                        text:
-                            msg.text || "",
-
-                        file:
-                            msg.file || "",
-
-                        voice:
-                            msg.voice || "",
-
-                        type:
-                            msg.type || "text"
-                    });
-
-                socket.emit(
-                    "private message",
-                    saved
-                );
-
-                if (
-                    receiverSocket
-                ) {
-
-                    io.to(
-                        receiverSocket
-                    ).emit(
-                        "private message",
-                        saved
-                    );
+    // Edit message
+    socket.on("edit message", async ({ messageId, newText, receiver }) => {
+        try {
+            const message = await Message.findById(messageId);
+            if (message && message.sender === socket.username) {
+                message.text = newText;
+                message.edited = true;
+                await message.save();
+                
+                const receiverSocket = onlineUsers[receiver];
+                const editData = { 
+                    messageId, 
+                    newText, 
+                    sender: socket.username,
+                    receiver 
+                };
+                
+                if (receiverSocket) {
+                    io.to(receiverSocket).emit("message edited", editData);
                 }
-
-            } catch (err) {
-
-                console.log(
-                    "Private message error:",
-                    err
-                );
+                socket.emit("message edited", editData);
             }
+        } catch (err) {
+            console.log("Edit error:", err);
         }
-    );
+    });
 
-    socket.on(
-        "disconnect",
-        () => {
-
-            if (
-                socket.username
-            ) {
-
-                delete onlineUsers[
-                    socket.username
-                ];
-
-                io.emit(
-                    "online users",
-                    Object.keys(
-                        onlineUsers
-                    )
-                );
-
-                console.log(
-                    socket.username,
-                    "offline"
-                );
+    // Delete message
+    socket.on("delete message", async ({ messageId, receiver }) => {
+        try {
+            const message = await Message.findById(messageId);
+            if (message && message.sender === socket.username) {
+                await Message.deleteOne({ _id: messageId });
+                
+                const receiverSocket = onlineUsers[receiver];
+                const deleteData = { 
+                    messageId, 
+                    sender: socket.username,
+                    receiver 
+                };
+                
+                if (receiverSocket) {
+                    io.to(receiverSocket).emit("message deleted", deleteData);
+                }
+                socket.emit("message deleted", deleteData);
             }
+        } catch (err) {
+            console.log("Delete error:", err);
         }
-    );
+    });
+
+    // Add reaction to message
+    socket.on("add reaction", async ({ messageId, reaction, receiver }) => {
+        try {
+            const message = await Message.findById(messageId);
+            if (message) {
+                if (!message.reactions) message.reactions = {};
+                if (!message.reactions[reaction]) message.reactions[reaction] = [];
+                
+                // Toggle reaction (add if not exists, remove if exists)
+                const userIndex = message.reactions[reaction].indexOf(socket.username);
+                if (userIndex === -1) {
+                    message.reactions[reaction].push(socket.username);
+                } else {
+                    message.reactions[reaction].splice(userIndex, 1);
+                    if (message.reactions[reaction].length === 0) {
+                        delete message.reactions[reaction];
+                    }
+                }
+                
+                await message.save();
+                
+                const receiverSocket = onlineUsers[receiver];
+                const reactionData = { 
+                    messageId, 
+                    reaction, 
+                    user: socket.username,
+                    receiver,
+                    reactions: message.reactions
+                };
+                
+                if (receiverSocket) {
+                    io.to(receiverSocket).emit("reaction added", reactionData);
+                }
+                socket.emit("reaction added", reactionData);
+            }
+        } catch (err) {
+            console.log("Reaction error:", err);
+        }
+    });
+
+    // Get user status (for initial load)
+    socket.on("get user status", ({ username }) => {
+        if (userStatus[username]) {
+            socket.emit("user status", { 
+                username, 
+                status: userStatus[username] 
+            });
+        }
+    });
+
+    socket.on("disconnect", () => {
+        if (socket.username) {
+            delete onlineUsers[socket.username];
+            io.emit("online users", Object.keys(onlineUsers));
+            console.log(socket.username, "offline");
+        }
+    });
 });
 
 /* ================= START ================= */
 
-const PORT =
-    process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;
 
 server.listen(PORT, () => {
-
-    console.log(
-        `Commit Chat running on port ${PORT}`
-    );
+    console.log(`Commit Chat running on port ${PORT}`);
 });
