@@ -89,6 +89,32 @@ html, body {
     50% { opacity: 1; }
 }
 
+/* Jump to Bottom Button */
+.jump-to-bottom {
+    position: fixed;
+    bottom: 80px;
+    right: 30px;
+    background: var(--accent-primary);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 45px;
+    height: 45px;
+    font-size: 20px;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    transition: all 0.2s;
+}
+
+.jump-to-bottom:hover {
+    transform: scale(1.1);
+    background: var(--accent-secondary);
+}
+
 /* Friend Request Button */
 .request-btn {
     background: var(--accent-primary);
@@ -329,6 +355,7 @@ html, body {
     flex-direction: column;
     height: 100dvh;
     overflow: hidden;
+    position: relative;
 }
 
 #header {
@@ -453,6 +480,10 @@ html, body {
     .msg {
         max-width: 85%;
     }
+    .jump-to-bottom {
+        bottom: 70px;
+        right: 20px;
+    }
 }
 </style>
 </head>
@@ -528,6 +559,7 @@ html, body {
         </div>
         <div id="typingIndicator" class="typing-indicator" style="display:none;"></div>
         <div id="messages"></div>
+        <button id="jumpToBottom" class="jump-to-bottom" onclick="scrollToBottom()">↓</button>
         <div id="form">
             <input id="input" placeholder="type your message...">
             <input type="file" id="file" hidden>
@@ -564,6 +596,51 @@ let verifiedUsers = ["Sreeram", "sreeram"];
 let currentResetToken = null;
 let resetUsername = null;
 
+// ================= AUTO-SCROLL VARIABLES =================
+let isUserScrolling = false;
+let scrollTimeout;
+
+// ================= SCROLL FUNCTIONS =================
+function scrollToBottom() {
+    const messagesDiv = document.getElementById("messages");
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    document.getElementById("jumpToBottom").style.display = "none";
+    isUserScrolling = false;
+}
+
+function checkScrollPosition() {
+    const messagesDiv = document.getElementById("messages");
+    const isNearBottom = messagesDiv.scrollHeight - messagesDiv.scrollTop - messagesDiv.clientHeight < 100;
+    
+    if (isNearBottom) {
+        document.getElementById("jumpToBottom").style.display = "none";
+    } else {
+        document.getElementById("jumpToBottom").style.display = "flex";
+    }
+}
+
+function autoScrollIfNeeded() {
+    if (!isUserScrolling) {
+        scrollToBottom();
+    }
+}
+
+function setupScrollListener() {
+    const messagesDiv = document.getElementById("messages");
+    
+    messagesDiv.addEventListener("scroll", () => {
+        isUserScrolling = true;
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+            const isNearBottom = messagesDiv.scrollHeight - messagesDiv.scrollTop - messagesDiv.clientHeight < 100;
+            if (isNearBottom) {
+                isUserScrolling = false;
+            }
+        }, 3000);
+        checkScrollPosition();
+    });
+}
+
 // ================= UI HELPERS =================
 
 function toggleSidebar() {
@@ -593,23 +670,18 @@ function switchTab(tab) {
 // ================= FRIEND SYSTEM =================
 
 async function loadFriends() {
-    // Check if user is admin (Sreeram)
     const isAdmin = verifiedUsers.includes(username);
-    
     let usersToShow = [];
     
     if (isAdmin) {
-        // Admin sees ALL users except themselves
         try {
             const allUsersRes = await fetch("/users");
             const allUsers = await allUsersRes.json();
             usersToShow = allUsers.map(u => u.username).filter(u => u !== username);
-            console.log("Admin mode - showing all users:", usersToShow);
         } catch (err) {
             console.error("Failed to load users:", err);
         }
     } else {
-        // Normal users see only friends
         try {
             const friendsRes = await fetch(`/friends/${username}`);
             const friendsData = await friendsRes.json();
@@ -621,7 +693,6 @@ async function loadFriends() {
     }
     
     const container = document.getElementById("friendsList");
-    
     if (!container) return;
     
     if (usersToShow.length === 0) {
@@ -642,7 +713,6 @@ async function loadFriends() {
             <div class="user-name-wrapper">
                 <div class="user-name">${user}</div>
                 ${isVerified ? '<span class="verified-badge" title="Verified User"></span>' : ''}
-                ${isAdmin ? '<span style="font-size:10px; margin-left:6px; color:#fbbf24;"></span>' : ''}
             </div>
             <div class="user-status ${online ? 'user-online' : 'user-offline'}">
                 ${online ? 'online' : 'offline'}
@@ -756,7 +826,6 @@ async function sendFriendRequest(to) {
 async function loadVisibleUsers() {
     const res = await fetch(`/visible-users/${username}`);
     const data = await res.json();
-    // Update online status display
 }
 
 // ================= AUTH =================
@@ -803,6 +872,8 @@ function startChat() {
     document.getElementById("chat").style.display = "flex";
     loadFriends();
     loadFriendRequests();
+    loadVisibleUsers();
+    setupScrollListener();
 }
 
 // ================= CHAT =================
@@ -821,6 +892,11 @@ async function openChat(user) {
     if (!messages.error) {
         messages.forEach(msg => renderMessage(msg));
     }
+    
+    setTimeout(() => {
+        scrollToBottom();
+        isUserScrolling = false;
+    }, 100);
 }
 
 function renderMessage(msg) {
@@ -839,7 +915,7 @@ function renderMessage(msg) {
     html += `<div class="message-time">${new Date().toLocaleTimeString()}</div></div>`;
     wrapper.innerHTML = html;
     document.getElementById("messages").appendChild(wrapper);
-    wrapper.scrollIntoView({ behavior: "smooth" });
+    autoScrollIfNeeded();
 }
 
 async function sendMessage() {
