@@ -36,7 +36,7 @@ html, body {
     color: var(--text-primary);
 }
 
-/* Verified Badge - Instagram/Twitter style */
+/* Verified Badge */
 .verified-badge {
     display: inline-flex;
     align-items: center;
@@ -51,7 +51,6 @@ html, body {
     margin-left: 6px;
     cursor: pointer;
     vertical-align: middle;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 
 .verified-badge::before {
@@ -66,8 +65,130 @@ html, body {
     flex-wrap: wrap;
 }
 
-/* ================= LOGIN SCREEN ================= */
+/* Friend Badge */
+.friend-badge {
+    font-size: 9px;
+    background: var(--accent-secondary);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: 6px;
+}
 
+/* Typing Indicator */
+.typing-indicator {
+    font-size: 11px;
+    color: var(--terminal-green);
+    font-style: italic;
+    padding: 5px 15px;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+/* Friend Request Button */
+.request-btn {
+    background: var(--accent-primary);
+    border: none;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 10px;
+    margin-top: 5px;
+    font-family: monospace;
+}
+
+.request-btn:hover {
+    opacity: 0.8;
+}
+
+.request-btn.pending {
+    background: var(--terminal-gray);
+    cursor: not-allowed;
+}
+
+/* Tabs */
+.tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+    padding: 0 15px;
+}
+
+.tab {
+    padding: 10px 15px;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+}
+
+.tab.active {
+    color: var(--accent-primary);
+    border-bottom: 2px solid var(--accent-primary);
+}
+
+.tab:hover {
+    color: var(--text-primary);
+}
+
+/* Search Box */
+.search-box {
+    padding: 10px 15px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.search-box input {
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 12px;
+}
+
+.search-results {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.search-result-item {
+    padding: 8px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* Friend Request Item */
+.request-item {
+    padding: 10px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.request-actions button {
+    background: var(--accent-secondary);
+    border: none;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 10px;
+    margin-left: 5px;
+}
+
+.request-actions button.reject {
+    background: var(--accent-danger);
+}
+
+/* Login Screen */
 #login {
     width: 100%;
     height: 100vh;
@@ -85,13 +206,11 @@ html, body {
     border-radius: 16px;
     padding: 40px;
     border: 1px solid var(--border-color);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
 #login-box h2 {
     margin-bottom: 30px;
     font-size: 28px;
-    font-weight: 700;
 }
 
 .accent {
@@ -100,7 +219,6 @@ html, body {
 
 .terminal-prefix {
     color: var(--terminal-green);
-    font-size: 14px;
     margin-right: 8px;
 }
 
@@ -111,15 +229,7 @@ html, body {
     border-radius: 8px;
     background: var(--bg-tertiary);
     color: var(--text-primary);
-    font-size: 14px;
     margin-bottom: 20px;
-    font-family: monospace;
-}
-
-#usernameInput:focus {
-    outline: none;
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
 }
 
 .login-btn {
@@ -127,11 +237,8 @@ html, body {
     border: none;
     border-radius: 8px;
     cursor: pointer;
-    font-weight: 600;
-    font-size: 14px;
     margin: 5px;
     transition: all 0.2s;
-    font-family: monospace;
 }
 
 .login-btn:first-of-type {
@@ -145,13 +252,7 @@ html, body {
     border: 1px solid var(--border-color);
 }
 
-.login-btn:hover {
-    transform: translateY(-1px);
-    filter: brightness(1.1);
-}
-
-/* ================= MAIN CHAT ================= */
-
+/* Main Chat */
 #chat {
     display: none;
     width: 100%;
@@ -159,33 +260,30 @@ html, body {
     flex-direction: row;
 }
 
-/* SIDEBAR - Programmer Style */
-
 #sidebar {
-    width: 300px;
+    width: 320px;
     background: var(--bg-secondary);
     border-right: 1px solid var(--border-color);
     overflow-y: auto;
     transition: 0.3s;
+    display: flex;
+    flex-direction: column;
 }
 
 #sidebar-header {
     padding: 20px;
     font-weight: 700;
-    font-size: 18px;
     border-bottom: 1px solid var(--border-color);
     background: var(--bg-tertiary);
 }
 
-#sidebar-header .repo-badge {
-    font-size: 11px;
-    color: var(--terminal-green);
-    margin-top: 5px;
-    font-family: monospace;
+#usersList {
+    flex: 1;
+    overflow-y: auto;
 }
 
 .user-item {
-    padding: 14px 20px;
+    padding: 12px 20px;
     cursor: pointer;
     border-bottom: 1px solid var(--border-color);
     transition: all 0.2s;
@@ -204,7 +302,6 @@ html, body {
 
 .user-status {
     font-size: 11px;
-    font-family: monospace;
 }
 
 .user-online {
@@ -225,21 +322,23 @@ html, body {
     margin-right: 5px;
 }
 
-/* CHAT AREA */
-
+/* Chat Area */
 #chat-area {
     flex: 1;
     display: flex;
     flex-direction: column;
     height: 100dvh;
     overflow: hidden;
-    background: var(--bg-primary);
 }
 
 #header {
     background: var(--bg-secondary);
     padding: 15px 20px;
     border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
 }
 
 #menuBtn {
@@ -249,15 +348,13 @@ html, body {
     padding: 8px 12px;
     border-radius: 6px;
     cursor: pointer;
-    margin-right: 12px;
-    font-family: monospace;
-    font-size: 12px;
 }
 
 #chatTitle {
     font-weight: 600;
     font-size: 14px;
     color: var(--accent-primary);
+    flex: 1;
 }
 
 #chatTitle::before {
@@ -266,13 +363,10 @@ html, body {
     margin-right: 8px;
 }
 
-/* MESSAGES */
-
 #messages {
     flex: 1;
     overflow-y: auto;
     padding: 20px;
-    padding-bottom: 90px;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -284,18 +378,14 @@ html, body {
     border-radius: 12px;
     word-wrap: break-word;
     font-size: 13px;
-    line-height: 1.5;
 }
 
-.me {
-    align-self: flex-end;
+.me .msg {
     background: linear-gradient(135deg, #1e3a5f, #1a2d4a);
     border: 1px solid var(--accent-primary);
-    color: var(--text-primary);
 }
 
-.other {
-    align-self: flex-start;
+.other .msg {
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
 }
@@ -305,7 +395,6 @@ html, body {
     font-size: 10px;
     opacity: 0.7;
     margin-bottom: 5px;
-    font-family: monospace;
 }
 
 .message-time {
@@ -313,10 +402,7 @@ html, body {
     opacity: 0.5;
     margin-top: 4px;
     text-align: right;
-    font-family: monospace;
 }
-
-/* INPUT FORM */
 
 #form {
     display: flex;
@@ -327,9 +413,8 @@ html, body {
     border-top: 1px solid var(--border-color);
     position: fixed;
     bottom: 0;
-    left: 300px;
+    left: 320px;
     right: 0;
-    z-index: 1000;
 }
 
 #input {
@@ -339,13 +424,6 @@ html, body {
     border-radius: 8px;
     background: var(--bg-tertiary);
     color: var(--text-primary);
-    font-family: monospace;
-    font-size: 13px;
-}
-
-#input:focus {
-    outline: none;
-    border-color: var(--accent-primary);
 }
 
 #form button, #fileBtn {
@@ -355,53 +433,7 @@ html, body {
     padding: 8px 12px;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 16px;
-    transition: all 0.2s;
 }
-
-#form button:hover, #fileBtn:hover {
-    background: var(--accent-primary);
-    border-color: var(--accent-primary);
-}
-
-/* FILE DOWNLOAD */
-
-a[download] {
-    color: var(--accent-primary);
-    text-decoration: none;
-    font-size: 12px;
-    font-family: monospace;
-}
-
-a[download]:hover {
-    text-decoration: underline;
-}
-
-/* AUDIO PLAYER */
-
-audio {
-    max-width: 200px;
-    height: 30px;
-    margin-top: 5px;
-}
-
-/* SCROLLBAR */
-
-::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-
-::-webkit-scrollbar-track {
-    background: var(--bg-secondary);
-}
-
-::-webkit-scrollbar-thumb {
-    background: var(--accent-primary);
-    border-radius: 3px;
-}
-
-/* MOBILE RESPONSIVE */
 
 @media (max-width: 768px) {
     #sidebar {
@@ -409,19 +441,15 @@ audio {
         left: 0;
         top: 0;
         bottom: 0;
-        width: 280px;
         z-index: 9999;
         transform: translateX(-100%);
     }
-    
     #sidebar.open {
         transform: translateX(0);
     }
-    
     #form {
         left: 0;
     }
-    
     .msg {
         max-width: 85%;
     }
@@ -433,35 +461,72 @@ audio {
 <!-- LOGIN -->
 <div id="login">
     <div id="login-box">
-        <h2>
-            <span class="terminal-prefix">$></span>
-            <span class="accent">Commit</span> Chat
-        </h2>
-        <p style="font-size: 11px; color: #6b7280; margin-bottom: 20px;">
-            git commit -m "secure communication"
-        </p>
+        <h2><span class="terminal-prefix">$></span><span class="accent">Commit</span> Chat</h2>
+        <p style="font-size: 11px; color: #6b7280; margin-bottom: 20px;">git commit -m "secure communication"</p>
         <input id="usernameInput" placeholder="username@commit.chat">
         <br>
         <button class="login-btn" onclick="login()">git login</button>
         <button class="login-btn" onclick="register()">git register</button>
+        <button class="login-btn" onclick="showForgotPassword()" style="background:#374151; margin-top:10px;">🔐 forgot password?</button>
+    </div>
+</div>
+
+<!-- Modals -->
+<div id="resetModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10000; justify-content:center; align-items:center;">
+    <div style="background:#0f1420; border:1px solid #1f2937; border-radius:16px; padding:30px; width:90%; max-width:400px;">
+        <h3>🔐 Reset Password</h3>
+        <div id="resetStep1">
+            <input type="text" id="resetUsername" placeholder="Username" style="width:100%; padding:10px; margin:15px 0; background:#151b28; border:1px solid #1f2937; border-radius:8px; color:white;">
+            <button onclick="requestPasswordReset()" style="width:100%; padding:10px; background:#3b82f6; border:none; border-radius:8px; color:white;">Send Reset Link</button>
+        </div>
+        <div id="resetStep2" style="display:none;">
+            <input type="password" id="newPassword" placeholder="New Password" style="width:100%; padding:10px; margin:15px 0; background:#151b28; border:1px solid #1f2937; border-radius:8px; color:white;">
+            <input type="password" id="confirmPassword" placeholder="Confirm Password" style="width:100%; padding:10px; margin-bottom:15px; background:#151b28; border:1px solid #1f2937; border-radius:8px; color:white;">
+            <button onclick="confirmPasswordReset()" style="width:100%; padding:10px; background:#10b981; border:none; border-radius:8px; color:white;">Reset Password</button>
+        </div>
+        <button onclick="closeResetModal()" style="width:100%; padding:8px; margin-top:10px; background:#374151; border:none; border-radius:8px; color:white;">Cancel</button>
+        <div id="resetMessage" style="margin-top:15px; font-size:12px; text-align:center;"></div>
     </div>
 </div>
 
 <!-- CHAT -->
 <div id="chat">
     <div id="sidebar">
-        <div id="sidebar-header">
-            🗂️ /dev/users
-            <div class="repo-badge">● online contributors</div>
+        <div id="sidebar-header">🗂️ /dev/users</div>
+        
+        <!-- Tabs -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('friends')">👥 Friends</div>
+            <div class="tab" onclick="switchTab('requests')">📨 Requests</div>
+            <div class="tab" onclick="switchTab('search')">🔍 Add Friend</div>
         </div>
-        <div id="usersList"></div>
+        
+        <!-- Friends Tab -->
+        <div id="friendsTab" style="display:block;">
+            <div id="friendsList" style="overflow-y:auto;"></div>
+        </div>
+        
+        <!-- Requests Tab -->
+        <div id="requestsTab" style="display:none;">
+            <div id="requestsList" style="overflow-y:auto;"></div>
+        </div>
+        
+        <!-- Search Tab -->
+        <div id="searchTab" style="display:none;">
+            <div class="search-box">
+                <input type="text" id="searchUserInput" placeholder="🔍 Search users..." onkeyup="searchUsers()">
+            </div>
+            <div id="searchResults" class="search-results"></div>
+        </div>
     </div>
 
     <div id="chat-area">
         <div id="header">
-            <button id="menuBtn" onclick="toggleUsers()">☰ ls users</button>
+            <button id="menuBtn" onclick="toggleSidebar()">☰</button>
             <span id="chatTitle">~/select/peer</span>
+            <button onclick="showChangePassword()" style="background:#374151; border:none; border-radius:6px; padding:5px 12px; cursor:pointer; font-size:11px;">🔐 Change Password</button>
         </div>
+        <div id="typingIndicator" class="typing-indicator" style="display:none;"></div>
         <div id="messages"></div>
         <div id="form">
             <input id="input" placeholder="type your message...">
@@ -473,37 +538,198 @@ audio {
     </div>
 </div>
 
+<!-- Change Password Modal -->
+<div id="changePwdModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10001; justify-content:center; align-items:center;">
+    <div style="background:#0f1420; border:1px solid #1f2937; border-radius:16px; padding:30px; width:90%; max-width:400px;">
+        <h3>🔐 Change Password</h3>
+        <input type="password" id="currentPassword" placeholder="Current Password" style="width:100%; padding:10px; margin:15px 0; background:#151b28; border:1px solid #1f2937; border-radius:8px; color:white;">
+        <input type="password" id="newPasswordChange" placeholder="New Password" style="width:100%; padding:10px; margin-bottom:15px; background:#151b28; border:1px solid #1f2937; border-radius:8px; color:white;">
+        <input type="password" id="confirmNewPassword" placeholder="Confirm New Password" style="width:100%; padding:10px; margin-bottom:15px; background:#151b28; border:1px solid #1f2937; border-radius:8px; color:white;">
+        <button onclick="changePassword()" style="width:100%; padding:10px; background:#10b981; border:none; border-radius:8px; color:white;">Update Password</button>
+        <button onclick="closeChangePwdModal()" style="width:100%; padding:8px; margin-top:10px; background:#374151; border:none; border-radius:8px; color:white;">Cancel</button>
+        <div id="changePwdMessage" style="margin-top:15px; font-size:12px; text-align:center;"></div>
+    </div>
+</div>
+
 <script src="/socket.io/socket.io.js"></script>
 <script>
 const socket = io();
-
-// Verified users with blue tick (Instagram-style)
-let verifiedUsers = ["Sreeram", "sreeram"];
-
 let username = "";
 let token = "";
 let selectedUser = "";
 let onlineUsers = [];
+let friendsList = [];
+let friendRequests = [];
+let verifiedUsers = ["Sreeram", "sreeram"];
+let currentResetToken = null;
+let resetUsername = null;
 
-const messagesDiv = document.getElementById("messages");
-const usersList = document.getElementById("usersList");
+// ================= UI HELPERS =================
 
-function toggleUsers() {
+function toggleSidebar() {
     document.getElementById("sidebar").classList.toggle("open");
 }
 
-function startChat() {
-    document.getElementById("login").style.display = "none";
-    document.getElementById("chat").style.display = "flex";
-    loadUsers();
+function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('friendsTab').style.display = 'none';
+    document.getElementById('requestsTab').style.display = 'none';
+    document.getElementById('searchTab').style.display = 'none';
+    
+    if (tab === 'friends') {
+        document.querySelector('.tab:nth-child(1)').classList.add('active');
+        document.getElementById('friendsTab').style.display = 'block';
+        loadFriends();
+    } else if (tab === 'requests') {
+        document.querySelector('.tab:nth-child(2)').classList.add('active');
+        document.getElementById('requestsTab').style.display = 'block';
+        loadFriendRequests();
+    } else if (tab === 'search') {
+        document.querySelector('.tab:nth-child(3)').classList.add('active');
+        document.getElementById('searchTab').style.display = 'block';
+    }
 }
+
+// ================= FRIEND SYSTEM =================
+
+async function loadFriends() {
+    const res = await fetch(`/friends/${username}`);
+    const data = await res.json();
+    friendsList = data.friends || [];
+    
+    const container = document.getElementById("friendsList");
+    container.innerHTML = friendsList.length === 0 ? '<div style="padding:20px; text-align:center; color:#6b7280;">No friends yet. Add some!</div>' : '';
+    
+    for (const friend of friendsList) {
+        const online = onlineUsers.includes(friend);
+        const isVerified = verifiedUsers.includes(friend);
+        const div = document.createElement("div");
+        div.className = "user-item";
+        div.innerHTML = `
+            <div class="user-name-wrapper">
+                <div class="user-name">${friend}</div>
+                ${isVerified ? '<span class="verified-badge"></span>' : ''}
+            </div>
+            <div class="user-status ${online ? 'user-online' : 'user-offline'}">
+                ${online ? 'online' : 'offline'}
+            </div>
+        `;
+        div.onclick = () => openChat(friend);
+        container.appendChild(div);
+    }
+}
+
+async function loadFriendRequests() {
+    const res = await fetch(`/friend-requests/${username}`);
+    const data = await res.json();
+    friendRequests = data.requests || [];
+    
+    const container = document.getElementById("requestsList");
+    if (friendRequests.length === 0) {
+        container.innerHTML = '<div style="padding:20px; text-align:center; color:#6b7280;">No pending requests</div>';
+        return;
+    }
+    
+    container.innerHTML = "";
+    for (const requester of friendRequests) {
+        const div = document.createElement("div");
+        div.className = "request-item";
+        div.innerHTML = `
+            <span>${requester}</span>
+            <div class="request-actions">
+                <button onclick="acceptRequest('${requester}')">✓ Accept</button>
+                <button class="reject" onclick="rejectRequest('${requester}')">✗ Reject</button>
+            </div>
+        `;
+        container.appendChild(div);
+    }
+}
+
+async function acceptRequest(requester) {
+    const res = await fetch("/accept-friend-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, requester })
+    });
+    const data = await res.json();
+    if (data.success) {
+        loadFriendRequests();
+        loadFriends();
+        loadVisibleUsers();
+    } else {
+        alert(data.error);
+    }
+}
+
+async function rejectRequest(requester) {
+    const res = await fetch("/reject-friend-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, requester })
+    });
+    const data = await res.json();
+    if (data.success) {
+        loadFriendRequests();
+    } else {
+        alert(data.error);
+    }
+}
+
+async function searchUsers() {
+    const query = document.getElementById("searchUserInput").value.trim();
+    if (query.length < 2) {
+        document.getElementById("searchResults").innerHTML = "";
+        return;
+    }
+    
+    const res = await fetch(`/search-users/${query}?currentUser=${username}`);
+    const users = await res.json();
+    
+    const container = document.getElementById("searchResults");
+    container.innerHTML = "";
+    
+    for (const user of users) {
+        const isFriend = friendsList.includes(user.username);
+        const isRequestSent = friendRequests.includes(user.username);
+        
+        const div = document.createElement("div");
+        div.className = "search-result-item";
+        div.innerHTML = `
+            <span>${user.username}</span>
+            ${!isFriend && !isRequestSent ? `<button class="request-btn" onclick="sendFriendRequest('${user.username}')">➕ Add Friend</button>` : 
+              isRequestSent ? '<span style="font-size:10px; color:#6b7280;">Request sent</span>' : 
+              '<span style="font-size:10px; color:#10b981;">✓ Friend</span>'}
+        `;
+        container.appendChild(div);
+    }
+}
+
+async function sendFriendRequest(to) {
+    const res = await fetch("/send-friend-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ from: username, to })
+    });
+    const data = await res.json();
+    if (data.success) {
+        alert("Friend request sent!");
+        searchUsers();
+    } else {
+        alert(data.error);
+    }
+}
+
+async function loadVisibleUsers() {
+    const res = await fetch(`/visible-users/${username}`);
+    const data = await res.json();
+    // Update online status display
+}
+
+// ================= AUTH =================
 
 async function register() {
     const usernameInput = document.getElementById("usernameInput").value.trim();
-    if (!usernameInput) {
-        alert("Enter username");
-        return;
-    }
+    if (!usernameInput) { alert("Enter username"); return; }
     const password = prompt("Create password:");
     if (!password) return;
     
@@ -513,81 +739,39 @@ async function register() {
         body: JSON.stringify({ username: usernameInput, password })
     });
     const data = await res.json();
-    if (data.error) {
-        alert(data.error);
-        return;
-    }
+    if (data.error) { alert(data.error); return; }
     alert("✅ Registered successfully");
 }
 
-let loginInProgress = false;
-
 async function login() {
-    if (loginInProgress) return;
-    loginInProgress = true;
+    const usernameInput = document.getElementById("usernameInput").value.trim();
+    if (!usernameInput) { alert("Enter username"); return; }
+    const password = prompt("Enter password:");
+    if (!password) return;
     
-    try {
-        const usernameInput = document.getElementById("usernameInput").value.trim();
-        if (!usernameInput) {
-            alert("Enter username");
-            loginInProgress = false;
-            return;
-        }
-        const password = prompt("Enter password:");
-        if (!password) {
-            loginInProgress = false;
-            return;
-        }
-        
-        const res = await fetch("/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username: usernameInput, password })
-        });
-        const data = await res.json();
-        
-        if (!data.user) {
-            alert(data.error || "Login failed");
-            loginInProgress = false;
-            return;
-        }
-        
-        username = data.user.username;
-        token = data.token;
-        socket.emit("set user", token);
-        startChat();
-    } catch (err) {
-        console.error(err);
-        alert("Login failed");
-    } finally {
-        loginInProgress = false;
-    }
+    const res = await fetch("/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: usernameInput, password })
+    });
+    const data = await res.json();
+    
+    if (data.error) { alert(data.error); return; }
+    
+    username = data.user.username;
+    token = data.token;
+    socket.emit("set user", token);
+    startChat();
 }
 
-async function loadUsers() {
-    const res = await fetch("/users");
-    const users = await res.json();
-    usersList.innerHTML = "";
-    
-    users.forEach(user => {
-        if (user.username === username) return;
-        const div = document.createElement("div");
-        div.className = "user-item";
-        const online = onlineUsers.includes(user.username);
-        const isVerified = verifiedUsers.includes(user.username);
-        div.innerHTML = `
-            <div class="user-name-wrapper">
-                <div class="user-name">${user.username}</div>
-                ${isVerified ? '<span class="verified-badge" title="Verified User"></span>' : ''}
-            </div>
-            <div class="user-status ${online ? 'user-online' : 'user-offline'}">
-                ${online ? 'online' : 'offline'}
-            </div>
-        `;
-        div.onclick = () => openChat(user.username);
-        usersList.appendChild(div);
-    });
+function startChat() {
+    document.getElementById("login").style.display = "none";
+    document.getElementById("chat").style.display = "flex";
+    loadFriends();
+    loadFriendRequests();
 }
+
+// ================= CHAT =================
 
 async function openChat(user) {
     selectedUser = user;
@@ -595,26 +779,61 @@ async function openChat(user) {
         document.getElementById("sidebar").classList.remove("open");
     }
     const isVerified = verifiedUsers.includes(user);
-    document.getElementById("chatTitle").innerHTML = `~/chat/with/${user}${isVerified ? ' <span class="verified-badge" title="Verified User"></span>' : ''}`;
-    messagesDiv.innerHTML = "";
+    document.getElementById("chatTitle").innerHTML = `~/chat/with/${user}${isVerified ? ' <span class="verified-badge"></span>' : ''}`;
+    document.getElementById("messages").innerHTML = "";
     
     const res = await fetch(`/messages/${username}/${user}`);
     const messages = await res.json();
-    messages.forEach(msg => renderMessage(msg));
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    if (!messages.error) {
+        messages.forEach(msg => renderMessage(msg));
+    }
 }
 
-socket.on("online users", users => {
-    onlineUsers = users;
-    loadUsers();
-});
+function renderMessage(msg) {
+    const wrapper = document.createElement("div");
+    wrapper.className = "message-wrapper";
+    const isMe = msg.sender === username;
+    wrapper.classList.add(isMe ? "me" : "other");
+    
+    const isVerifiedSender = verifiedUsers.includes(msg.sender);
+    let html = `<div class="msg"><span class="user">${msg.sender}${isVerifiedSender ? ' <span class="verified-badge"></span>' : ''}</span>`;
+    
+    if (msg.type === "text") html += msg.text || "";
+    else if (msg.type === "file") html += `<a href="data:application/octet-stream;base64,${msg.file}" download>📎 Download File</a>`;
+    else if (msg.type === "voice") html += `<audio controls src="data:audio/webm;base64,${msg.voice}"></audio>`;
+    
+    html += `<div class="message-time">${new Date().toLocaleTimeString()}</div></div>`;
+    wrapper.innerHTML = html;
+    document.getElementById("messages").appendChild(wrapper);
+    wrapper.scrollIntoView({ behavior: "smooth" });
+}
 
-document.getElementById("input").addEventListener("keydown", e => {
-    if (e.key === "Enter") sendMessage();
-});
-document.getElementById("usernameInput").addEventListener("keydown", e => {
-    if (e.key === "Enter") login();
-});
+async function sendMessage() {
+    if (!selectedUser) { alert("Select a user first"); return; }
+    const text = document.getElementById("input").value.trim();
+    if (!text) return;
+    
+    socket.emit("private message", { receiver: selectedUser, text, type: "text" });
+    document.getElementById("input").value = "";
+}
+
+async function sendVoice() {
+    if (!selectedUser) { alert("Select a user first"); return; }
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const recorder = new MediaRecorder(stream);
+    let chunks = [];
+    recorder.ondataavailable = e => chunks.push(e.data);
+    recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: "audio/webm" });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            socket.emit("private message", { receiver: selectedUser, type: "voice", voice: reader.result.split(",")[1] });
+        };
+        reader.readAsDataURL(blob);
+    };
+    recorder.start();
+    setTimeout(() => recorder.stop(), 4000);
+}
 
 function toBase64(file) {
     return new Promise(resolve => {
@@ -624,84 +843,109 @@ function toBase64(file) {
     });
 }
 
-async function sendMessage() {
-    if (!selectedUser) {
-        alert("Select a user first");
-        return;
-    }
-    const text = document.getElementById("input").value.trim();
-    const file = document.getElementById("file").files[0];
-    let fileBase64 = "";
-    if (file) fileBase64 = await toBase64(file);
-    if (!text && !fileBase64) return;
-    
-    socket.emit("private message", {
-        receiver: selectedUser,
-        text,
-        type: file ? "file" : "text",
-        file: fileBase64
-    });
-    document.getElementById("input").value = "";
-    document.getElementById("file").value = "";
-}
+// ================= SOCKET EVENTS =================
 
-async function sendVoice() {
-    if (!selectedUser) {
-        alert("Select a user first");
-        return;
-    }
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const recorder = new MediaRecorder(stream);
-    let chunks = [];
-    recorder.ondataavailable = e => chunks.push(e.data);
-    recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: "audio/webm" });
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            socket.emit("private message", {
-                receiver: selectedUser,
-                type: "voice",
-                voice: reader.result.split(",")[1]
-            });
-        };
-        reader.readAsDataURL(blob);
-    };
-    recorder.start();
-    setTimeout(() => recorder.stop(), 4000);
-}
-
-function formatTime() {
-    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
-function renderMessage(msg) {
-    const div = document.createElement("div");
-    const isMe = msg.sender === username;
-    div.className = "msg " + (isMe ? "me" : "other");
-    const isVerifiedSender = verifiedUsers.includes(msg.sender);
-    let html = `<span class="user">${msg.sender}${isVerifiedSender ? ' <span class="verified-badge" title="Verified User"></span>' : ''}</span>`;
-    
-    if (msg.type === "text") {
-        html += msg.text || "";
-    }
-    if (msg.type === "file") {
-        html += `<a href="data:application/octet-stream;base64,${msg.file}" download>📎 download file</a>`;
-    }
-    if (msg.type === "voice") {
-        html += `<audio controls src="data:audio/webm;base64,${msg.voice}"></audio>`;
-    }
-    
-    html += `<div class="message-time">${formatTime()}</div>`;
-    div.innerHTML = html;
-    messagesDiv.appendChild(div);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-}
+socket.on("online users", users => {
+    onlineUsers = users;
+    loadFriends();
+});
 
 socket.on("private message", msg => {
-    const currentChat = (msg.sender === selectedUser && msg.receiver === username) ||
-                       (msg.sender === username && msg.receiver === selectedUser);
-    if (currentChat) renderMessage(msg);
+    if (msg.sender === selectedUser || msg.receiver === selectedUser) {
+        renderMessage(msg);
+    }
 });
+
+socket.on("friend-request-received", ({ from }) => {
+    alert(`📨 New friend request from ${from}!`);
+    loadFriendRequests();
+});
+
+socket.on("friend-request-accepted", ({ by }) => {
+    alert(`✅ ${by} accepted your friend request!`);
+    loadFriends();
+    loadVisibleUsers();
+});
+
+// ================= PASSWORD RESET =================
+
+function showForgotPassword() {
+    document.getElementById("resetModal").style.display = "flex";
+    document.getElementById("resetStep1").style.display = "block";
+    document.getElementById("resetStep2").style.display = "none";
+}
+
+function closeResetModal() {
+    document.getElementById("resetModal").style.display = "none";
+}
+
+async function requestPasswordReset() {
+    const username = document.getElementById("resetUsername").value.trim();
+    if (!username) { alert("Enter username"); return; }
+    
+    const res = await fetch("/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username })
+    });
+    const data = await res.json();
+    
+    if (data.error) { alert(data.error); return; }
+    
+    currentResetToken = data.resetToken;
+    resetUsername = username;
+    document.getElementById("resetStep1").style.display = "none";
+    document.getElementById("resetStep2").style.display = "block";
+}
+
+async function confirmPasswordReset() {
+    const newPassword = document.getElementById("newPassword").value;
+    const confirmPassword = document.getElementById("confirmPassword").value;
+    
+    if (!newPassword || !confirmPassword) { alert("Fill all fields"); return; }
+    if (newPassword !== confirmPassword) { alert("Passwords don't match"); return; }
+    
+    const res = await fetch("/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: currentResetToken, newPassword, username: resetUsername })
+    });
+    const data = await res.json();
+    
+    if (data.success) { alert("Password reset successful!"); closeResetModal(); }
+    else { alert(data.error); }
+}
+
+function showChangePassword() {
+    document.getElementById("changePwdModal").style.display = "flex";
+}
+
+function closeChangePwdModal() {
+    document.getElementById("changePwdModal").style.display = "none";
+}
+
+async function changePassword() {
+    const currentPassword = document.getElementById("currentPassword").value;
+    const newPassword = document.getElementById("newPasswordChange").value;
+    const confirmPassword = document.getElementById("confirmNewPassword").value;
+    
+    if (!currentPassword || !newPassword || !confirmPassword) { alert("Fill all fields"); return; }
+    if (newPassword !== confirmPassword) { alert("New passwords don't match"); return; }
+    
+    const res = await fetch("/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, currentPassword, newPassword })
+    });
+    const data = await res.json();
+    
+    if (data.success) { alert("Password changed! Please login again."); location.reload(); }
+    else { alert(data.error); }
+}
+
+// Keyboard shortcuts
+document.getElementById("input").addEventListener("keydown", e => { if (e.key === "Enter") sendMessage(); });
+document.getElementById("usernameInput").addEventListener("keydown", e => { if (e.key === "Enter") login(); });
 </script>
 </body>
 </html>
