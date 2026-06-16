@@ -274,19 +274,36 @@ app.get("/messages/:user1/:user2", async (req, res) => {
     try {
         const { user1, user2 } = req.params;
         
-        const canView = await canViewMessages(user1, user2);
+        // Allow viewing if either user is admin (Sreeram)
+        const isAdmin1 = ADMIN_USERS.includes(user1);
+        const isAdmin2 = ADMIN_USERS.includes(user2);
         
-        if (!canView) {
-            return res.json({ error: "Not authorized to view these messages", messages: [] });
+        if (isAdmin1 || isAdmin2) {
+            // Admin chat with anyone - allow viewing
+            const messages = await Message.find({
+                $or: [
+                    { sender: user1, receiver: user2 },
+                    { sender: user2, receiver: user1 }
+                ]
+            }).sort({ createdAt: 1 });
+            return res.json(messages);
         }
-
+        
+        // Normal users: only view messages if they are friends
+        const user = await User.findOne({ username: user1 });
+        const areFriends = user && user.friends.includes(user2);
+        
+        if (!areFriends) {
+            return res.json({ error: "Not friends", messages: [] });
+        }
+        
         const messages = await Message.find({
             $or: [
                 { sender: user1, receiver: user2 },
                 { sender: user2, receiver: user1 }
             ]
         }).sort({ createdAt: 1 });
-
+        
         res.json(messages);
     } catch (err) {
         console.log(err);
@@ -373,6 +390,7 @@ io.on("connection", socket => {
 
     socket.on("private message", async msg => {
         try {
+            // Check if sender can send to this receiver
             const canSend = await canSendMessage(socket.username, msg.receiver);
             
             if (!canSend) {
@@ -396,7 +414,10 @@ io.on("connection", socket => {
                 edited: false
             });
 
+            // Always send to sender
             socket.emit("private message", saved);
+            
+            // Send to receiver (they can SEE it even if they can't reply)
             if (receiverSocket) {
                 io.to(receiverSocket).emit("private message", saved);
             }
