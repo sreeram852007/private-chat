@@ -95,6 +95,7 @@ async function loadFriends() {
     let usersToShow = [];
     
     if (isAdmin) {
+        // Admin sees ALL users except themselves
         try {
             const allUsersRes = await fetch("/users");
             const allUsers = await allUsersRes.json();
@@ -103,11 +104,21 @@ async function loadFriends() {
             console.error("Failed to load users:", err);
         }
     } else {
+        // Normal users see: friends + admin (Sreeram)
         try {
             const friendsRes = await fetch(`/friends/${username}`);
             const friendsData = await friendsRes.json();
-            usersToShow = friendsData.friends || [];
-            friendsList = usersToShow;
+            const myFriends = friendsData.friends || [];
+            friendsList = myFriends;
+            
+            // Start with friends
+            usersToShow = [...myFriends];
+            
+            // Add Sreeram (admin) if not already in friends list and not the current user
+            const adminUser = verifiedUsers.find(u => u !== username);
+            if (adminUser && !usersToShow.includes(adminUser)) {
+                usersToShow.push(adminUser);
+            }
         } catch (err) {
             console.error("Failed to load friends:", err);
         }
@@ -127,6 +138,7 @@ async function loadFriends() {
     for (const user of usersToShow) {
         const online = onlineUsers.includes(user);
         const isVerified = verifiedUsers.includes(user);
+        const isFriend = friendsList.includes(user);
         
         const div = document.createElement("div");
         div.className = "user-item";
@@ -134,6 +146,8 @@ async function loadFriends() {
             <div class="user-name-wrapper">
                 <div class="user-name">${escapeHtml(user)}</div>
                 ${isVerified ? '<span class="verified-badge" title="Verified User"></span>' : ''}
+                ${!isAdmin && isFriend ? '<span class="friend-badge">friend</span>' : ''}
+                ${!isAdmin && isVerified && !isFriend ? '<span style="font-size:9px; margin-left:6px; color:#6b7280;">👑</span>' : ''}
             </div>
             <div class="user-status ${online ? 'user-online' : 'user-offline'}">
                 ${online ? 'online' : 'offline'}
@@ -311,8 +325,50 @@ async function openChat(user) {
     if (window.innerWidth < 768) {
         document.getElementById("sidebar").classList.remove("open");
     }
+    
     const isVerified = verifiedUsers.includes(user);
+    const isFriend = friendsList.includes(user);
+    const isAdmin = verifiedUsers.includes(username);
+    
+    // Update chat title
     document.getElementById("chatTitle").innerHTML = `~/chat/with/${escapeHtml(user)}${isVerified ? ' <span class="verified-badge"></span>' : ''}`;
+    
+    // Check if user can reply (if target is admin and not friends, and current user is not admin)
+    const isReadOnly = isVerified && !isFriend && !isAdmin;
+    
+    // Update input box state
+    const input = document.getElementById("input");
+    const sendBtn = document.querySelector("#form button:last-child");
+    
+    if (isReadOnly) {
+        input.disabled = true;
+        input.placeholder = "🔒 Read-only - You can view messages but cannot reply";
+        input.style.opacity = "0.5";
+        sendBtn.style.opacity = "0.5";
+        sendBtn.style.pointerEvents = "none";
+        
+        // Show a small indicator in header
+        const titleSpan = document.getElementById("chatTitle");
+        if (!document.getElementById("readonlyBadge")) {
+            const badge = document.createElement("span");
+            badge.id = "readonlyBadge";
+            badge.innerHTML = " 🔒 read-only";
+            badge.style.cssText = "font-size:11px; color:#ef4444; margin-left:8px;";
+            titleSpan.appendChild(badge);
+        }
+    } else {
+        input.disabled = false;
+        input.placeholder = "type your message...";
+        input.style.opacity = "1";
+        sendBtn.style.opacity = "1";
+        sendBtn.style.pointerEvents = "auto";
+        
+        // Remove readonly badge if exists
+        const badge = document.getElementById("readonlyBadge");
+        if (badge) badge.remove();
+    }
+    
+    // Clear and load messages
     document.getElementById("messages").innerHTML = "";
     
     const res = await fetch(`/messages/${username}/${user}`);
