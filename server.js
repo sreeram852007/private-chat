@@ -5,6 +5,10 @@ const http = require("http");
 const { Server } = require("socket.io");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
+const { v4: uuidv4 } = require("uuid");
 
 const Message = require("./models/Message");
 const User = require("./models/User");
@@ -25,6 +29,121 @@ const userStatus = {};
 
 app.use(express.json({ limit: "20mb" }));
 app.use(express.static("public"));
+
+/* ================= FILE UPLOAD CONFIGURATION ================= */
+
+// Create uploads directory if it doesn't exist
+const uploadDir = path.join(__dirname, 'public', 'uploads');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+        // Generate unique filename to prevent conflicts
+        const uniqueId = uuidv4();
+        const originalName = file.originalname;
+        const ext = path.extname(originalName);
+        const baseName = path.basename(originalName, ext);
+        // Sanitize filename
+        const sanitizedBase = baseName.replace(/[^a-zA-Z0-9]/g, '_');
+        cb(null, `${sanitizedBase}_${uniqueId}${ext}`);
+    }
+});
+
+// File filter - Allow ALL file types including .exe
+const fileFilter = (req, file, cb) => {
+    // Allow all file types
+    cb(null, true);
+};
+
+// Configure multer with limits
+const upload = multer({
+    storage: storage,
+    limits: {
+        fileSize: 100 * 1024 * 1024 // 100MB max file size
+    },
+    fileFilter: fileFilter
+});
+
+/* ================= FILE UPLOAD ROUTES ================= */
+
+// Upload file route
+app.post('/api/upload', upload.single('file'), (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+
+        const fileUrl = `/uploads/${req.file.filename}`;
+        const fileInfo = {
+            filename: req.file.filename,
+            originalName: req.file.originalname,
+            size: req.file.size,
+            mimetype: req.file.mimetype,
+            url: fileUrl,
+            uploadDate: new Date()
+        };
+
+        res.json({
+            success: true,
+            file: fileInfo
+        });
+    } catch (error) {
+        console.error('Upload error:', error);
+        res.status(500).json({ error: 'File upload failed' });
+    }
+});
+
+// Download file route
+app.get('/api/download/:filename', (req, res) => {
+    const filename = req.params.filename;
+    const filePath = path.join(uploadDir, filename);
+    
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: 'File not found' });
+    }
+    
+    // Set headers for .exe files
+    const ext = path.extname(filename).toLowerCase();
+    if (ext === '.exe') {
+        res.setHeader('Content-Type', 'application/x-msdownload');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    }
+    
+    res.download(filePath, (err) => {
+        if (err) {
+            console.error('Download error:', err);
+            res.status(500).json({ error: 'Download failed' });
+        }
+    });
+});
+
+// Delete file route (optional)
+app.delete('/api/delete/:filename', async (req, res) => {
+    try {
+        const filename = req.params.filename;
+        const filePath = path.join(uploadDir, filename);
+        
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+            res.json({ success: true, message: 'File deleted' });
+        } else {
+            res.status(404).json({ error: 'File not found' });
+        }
+    } catch (error) {
+        console.error('Delete error:', error);
+        res.status(500).json({ error: 'Delete failed' });
+    }
+});
+
+// Serve uploaded files statically
+app.use('/uploads', express.static(uploadDir));
 
 /* ================= DATABASE ================= */
 
@@ -400,19 +519,30 @@ io.on("connection", socket => {
             
             const receiverSocket = onlineUsers[msg.receiver];
 
-            const saved = await Message.create({
+            // Create message with file support
+            const messageData = {
                 sender: socket.username,
                 receiver: msg.receiver,
                 text: msg.text || "",
-                file: msg.file || "",
-                voice: msg.voice || "",
                 type: msg.type || "text",
-                fileType: msg.fileType || "",
-                fileName: msg.fileName || "",
-                voiceDuration: msg.voiceDuration || 0,
                 reactions: {},
                 edited: false
-            });
+            };
+
+            // Add file data if present
+            if (msg.file) {
+                messageData.file = msg.file;
+                messageData.type = "file";
+            }
+
+            // Add voice data if present
+            if (msg.voice) {
+                messageData.voice = msg.voice;
+                messageData.type = "voice";
+                messageData.voiceDuration = msg.voiceDuration || 0;
+            }
+
+            const saved = await Message.create(messageData);
 
             // Always send to sender
             socket.emit("private message", saved);
@@ -527,4 +657,5 @@ server.listen(PORT, () => {
     console.log(`Commit Chat running on port ${PORT}`);
     console.log(`👑 Admin (can message anyone): ${ADMIN_USERS.join(", ")}`);
     console.log(`🔒 Normal users can only message friends`);
+    console.log(`📁 File upload enabled (including .exe files)`);
 });

@@ -1,26 +1,38 @@
 {
   "name": "private-chat",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Private Chat Application - Secure messaging with friends",
+  "main": "electron-main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+    "electron": "electron .",
+    "build-win": "electron-builder --win --x64",
+    "build-win-portable": "electron-builder --win --x64 --portable",
+    "build": "electron-builder"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "chat",
+    "messaging",
+    "private",
+    "realtime",
+    "socket.io"
+  ],
+  "author": "Sreeram",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.10.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.6.3",
-    "multer": "^2.1.1",
+    "multer": "^2.2.0",
     "socket.io": "^4.8.3",
-    "streamifier": "^0.1.1"
+    "streamifier": "^0.1.1",
+    "uuid": "^14.0.2"
   },
   "repository": {
     "type": "git",
@@ -29,5 +41,62 @@
   "bugs": {
     "url": "https://github.com/sreeram852007/private-chat/issues"
   },
-  "homepage": "https://github.com/sreeram852007/private-chat#readme"
+  "homepage": "https://github.com/sreeram852007/private-chat#readme",
+  "devDependencies": {
+    "electron": "^43.4.1",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.sreeram.privatechat",
+    "productName": "Private Chat",
+    "description": "Secure private messaging application",
+    "directories": {
+      "output": "dist",
+      "buildResources": "public"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "public/favicon.ico",
+      "publisherName": "Sreeram",
+      "certificateFile": "",
+      "certificatePassword": ""
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Private Chat",
+      "installerIcon": "public/favicon.ico",
+      "uninstallerIcon": "public/favicon.ico"
+    },
+    "portable": {
+      "artifactName": "Private-Chat-Portable.exe"
+    },
+    "files": [
+      "server.js",
+      "electron-main.js",
+      "config/**/*",
+      "models/**/*",
+      "public/**/*",
+      "node_modules/**/*",
+      ".env"
+    ],
+    "extraResources": [
+      {
+        "from": "public",
+        "to": "public",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ]
+  }
 }
